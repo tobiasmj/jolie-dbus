@@ -224,6 +224,7 @@ public class ProgramInspectorCreatorVisitor implements OLVisitor
 	public void visit( NotExpressionNode n ) {}
 	public void visit( CompareConditionNode n ) {}
 	public void visit( ConstantIntegerExpression n ) {}
+	public void visit( ConstantUInteger32Expression n ) {}
 	public void visit( ConstantLongExpression n ) {}
 	public void visit( ConstantBoolExpression n ) {}
 	public void visit( ConstantDoubleExpression n ) {}

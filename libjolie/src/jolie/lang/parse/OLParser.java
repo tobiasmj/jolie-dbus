@@ -118,6 +118,7 @@ import jolie.lang.parse.ast.types.TypeDefinition;
 import jolie.lang.parse.ast.types.TypeDefinitionLink;
 import jolie.lang.parse.ast.types.TypeDefinitionUndefined;
 import jolie.lang.parse.ast.types.TypeInlineDefinition;
+import jolie.lang.parse.ast.types.UInt32;
 import jolie.lang.parse.context.URIParsingContext;
 import jolie.util.Pair;
 import jolie.util.Range;
@@ -2216,6 +2217,9 @@ public class OLParser extends AbstractParser
 		} else if ( token.is( Scanner.TokenType.INT ) ) {
 			retVal = new ConstantIntegerExpression( getContext(), Integer.parseInt( token.content() ) );
 			getToken();
+                } else if ( token.is( Scanner.TokenType.UINT32 ) ) {
+                        retVal = new ConstantUInteger32Expression( getContext(), UInt32.parseUInt32(token.content() ) );
+                        getToken();
 		} else if ( token.is( Scanner.TokenType.LONG ) ) {
 			retVal = new ConstantLongExpression( getContext(), Long.parseLong( token.content() ) );
 			getToken();

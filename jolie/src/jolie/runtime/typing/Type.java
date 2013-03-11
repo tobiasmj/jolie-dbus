@@ -233,7 +233,9 @@ class TypeImpl extends Type
 			return value.valueObject() == null;
 		} else if ( nativeType == NativeType.RAW ) {
 			return value.isByteArray();
-		}
+		} else if ( nativeType == NativeType.UINT32) {
+                        return value.isUInt32();
+                }
 
 		return false;
 	}

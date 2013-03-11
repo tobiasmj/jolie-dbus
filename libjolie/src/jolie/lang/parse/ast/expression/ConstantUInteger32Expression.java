@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) by Fabrizio Montesi <famontesi@gmail.com>               *
+ * Copyright (C) 2013 by Tobias Mandrup Johansen <tobias.mandrup@gmail.com>*
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Library General Public License as       *
@@ -19,55 +19,31 @@
  *   For details about the authors of this software, see the AUTHORS file. *
  ***************************************************************************/
 
-package jolie.lang;
+package jolie.lang.parse.ast.expression;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import jolie.lang.parse.OLVisitor;
+import jolie.lang.parse.ast.OLSyntaxNode;
+import jolie.lang.parse.ast.types.UInt32;
+import jolie.lang.parse.context.ParsingContext;
 
-/**
- *
- * @author Fabrizio Montesi
- */
-public enum NativeType
+
+public class ConstantUInteger32Expression extends OLSyntaxNode
 {
-	//UNDEFINED( "undefined" ),
-	STRING( "string" ),
-	INT( "int" ),
-        UINT32( "uint32"),
-	LONG( "long" ),
-	BOOL( "bool" ),
-	DOUBLE( "double" ),
-	VOID( "void" ),
-	RAW( "raw" ),
-	ANY( "any" );
+	private final UInt32 value;
 
-	private final static Map< String, NativeType > idMap = new ConcurrentHashMap< String, NativeType >();
-
-	static {
-		for( NativeType type : NativeType.values() ) {
-			idMap.put( type.id(), type );
-		}
+	public ConstantUInteger32Expression( ParsingContext context, UInt32 value )
+	{
+		super( context );
+		this.value = value;
 	}
-
-	private final String id;
 	
-	NativeType( String id )
+	public UInt32 value()
 	{
-		this.id = id;
+		return value;
 	}
-
-	public String id()
+	
+	public void accept( OLVisitor visitor )
 	{
-		return id;
-	}
-
-	public static NativeType fromString( String id )
-	{
-		return idMap.get( id );
-	}
-
-	public static boolean isNativeTypeKeyword( String id )
-	{
-		return idMap.containsKey( id );
+		visitor.visit( this );
 	}
 }

@@ -109,6 +109,7 @@ import jolie.lang.parse.ast.courier.NotificationForwardStatement;
 import jolie.lang.parse.ast.courier.SolicitResponseForwardStatement;
 import jolie.lang.parse.ast.expression.ConstantBoolExpression;
 import jolie.lang.parse.ast.expression.ConstantLongExpression;
+import jolie.lang.parse.ast.expression.ConstantUInteger32Expression;
 import jolie.lang.parse.ast.expression.InstanceOfExpressionNode;
 import jolie.lang.parse.ast.types.TypeDefinition;
 import jolie.lang.parse.ast.types.TypeDefinitionLink;
@@ -890,6 +891,7 @@ public class SemanticVerifier implements OLVisitor
 	}
 
 	public void visit( ConstantIntegerExpression n ) {}
+        public void visit( ConstantUInteger32Expression n ) {}
 	public void visit( ConstantDoubleExpression n ) {}
 	public void visit( ConstantStringExpression n ) {}
 	public void visit( ConstantLongExpression n ) {}

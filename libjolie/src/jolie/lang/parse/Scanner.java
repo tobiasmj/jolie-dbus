@@ -48,6 +48,7 @@ public class Scanner
 		TRUE,				///< true
 		FALSE,				///< false
 		LONG,				///< [0-9]+L
+                UINT32,                         ///< [0-9]+U
 		DOUBLE,				///< [0-9]*"."[0-9]+(e|E)[0-9]+
 		LPAREN,				///< (
 		RPAREN,				///< )
@@ -610,7 +611,10 @@ public class Scanner
 						if ( ch == 'L' ) {
 							retval = new Token( TokenType.LONG, builder.toString() );
 							readChar();
-						} else {
+						} else if ( ch == 'U'){
+                                                        retval = new Token( TokenType.UINT32, builder.toString() );
+                                                        readChar();
+                                                } else {
 							retval = new Token( TokenType.INT, builder.toString() );
 						}
 					} else if ( ch == '.' ) {

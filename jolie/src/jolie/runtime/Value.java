@@ -21,6 +21,7 @@
 
 package jolie.runtime;
 
+import jolie.lang.parse.ast.types.UInt32;
 import jolie.runtime.expression.Expression;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -443,6 +444,11 @@ public abstract class Value implements Expression, Cloneable
 	{
 		return new ValueImpl( i );
 	}
+        
+        public final static Value create( UInt32 ui)
+        {
+                return new ValueImpl( ui );
+        }
 	
 	public final static Value create( Long l )
 	{
@@ -544,7 +550,10 @@ public abstract class Value implements Expression, Cloneable
 	{
 		setValueObject( object );
 	}
-
+        public final synchronized void setValue( UInt32 object )
+        {
+                setValueObject( object );
+        }       
 	public final synchronized void setValue( Double object )
 	{
 		setValueObject( object );
@@ -560,7 +569,9 @@ public abstract class Value implements Expression, Cloneable
 				r = strValue().equals( val.strValue() );
 			} else if ( isInt() ) {
 				r = intValue() == val.intValue();
-			} else if ( isDouble() ) {
+			} else if (isUInt32() ) {
+                                r = uint32Value().equals(val.uint32Value());
+                        } else if ( isDouble() ) {
 				r = doubleValue() == val.doubleValue();
 			} else if ( isBool() ) {
 				r = boolValue() == val.boolValue();
@@ -581,6 +592,11 @@ public abstract class Value implements Expression, Cloneable
 		return ( valueObject() instanceof Integer );
 	}
 	
+        public synchronized final boolean isUInt32()
+        {
+                return ( valueObject() instanceof UInt32);
+        }
+        
 	public synchronized final boolean isLong()
 	{
 		return ( valueObject() instanceof Long );
@@ -677,7 +693,16 @@ public abstract class Value implements Expression, Cloneable
 			} catch( IOException e ) {
 				throw new TypeCastingException();
 			}
-		} else if ( o instanceof Long ) {
+		} else if ( o instanceof UInt32){
+                        //TODO: This is slow
+                        ByteArrayOutputStream bbstream = new ByteArrayOutputStream( 4 );
+                        try {
+                            new DataOutputStream(bbstream).writeInt((Integer)o);
+                            r = new ByteArray(bbstream.toByteArray());
+                        } catch (IOException e){
+                            throw new TypeCastingException();
+                        }
+                } else if ( o instanceof Long ) {
 			// TODO: This is slow
 			ByteArrayOutputStream bbstream = new ByteArrayOutputStream( 8 );
 			try {
@@ -709,7 +734,27 @@ public abstract class Value implements Expression, Cloneable
 		}
 		return r;
 	}
-	
+	public UInt32 uint32Value()
+        {
+            try {
+                return uInt32ValueStrict();
+            } catch (TypeCastingException e){
+                return new UInt32(0L);
+            }
+        }
+        
+        public final synchronized UInt32 uInt32ValueStrict()
+                throws TypeCastingException
+        {
+            Object o = valueObject();
+            if ( o == null || !(o instanceof UInt32)) {
+                throw new TypeCastingException();
+            } else if ( o instanceof UInt32 ) {
+                return (UInt32)o;
+            }
+            return (UInt32)o;
+        }
+        
 	public int intValue()
 	{
 		try {
@@ -728,7 +773,9 @@ public abstract class Value implements Expression, Cloneable
 			throw new TypeCastingException();
 		} else if ( o instanceof Integer ) {
 			r = ((Integer)o).intValue();
-		} else if ( o instanceof Double ) {
+		} else if ( o instanceof UInt32 ) {
+                        r = ((UInt32) o).intValue();
+                } else if ( o instanceof Double ) {
 			r = ((Double)o).intValue();
 		} else if ( o instanceof Boolean ) {
 			r = ( ((Boolean) o).booleanValue() == true ) ? 1 : 0;
@@ -738,7 +785,7 @@ public abstract class Value implements Expression, Cloneable
 			} catch( NumberFormatException nfe ) {
 				throw new TypeCastingException();
 			}
-		}
+		} 
 		return r;
 	}
 	
@@ -791,6 +838,8 @@ public abstract class Value implements Expression, Cloneable
 			r = ((Long)o).longValue();
 		} else if ( o instanceof Integer ) {
 			r = ((Integer)o).longValue(); // added by Balint Maschio
+                } else if ( o instanceof UInt32) {
+                        r = ((UInt32)o).longValue();
 		} else if ( o instanceof Boolean ) {
 			r = ( ((Boolean) o).booleanValue() == true ) ? 1L : 0L;
 		} else if ( o instanceof Double ) {
@@ -823,6 +872,8 @@ public abstract class Value implements Expression, Cloneable
 			return 0;
 		} else if ( o instanceof Integer ) {
 			r = ((Integer)o).doubleValue();
+                } else if (o instanceof UInt32) {
+                        r = ((UInt32) o).doubleValue();
 		} else if ( o instanceof Double ) {
 			r = ((Double)o).doubleValue();
 		} else if ( o instanceof Boolean ) {
@@ -844,7 +895,9 @@ public abstract class Value implements Expression, Cloneable
 				setValue( strValue() + val.strValue() );
 			} else if ( isInt() ) {
 				setValue( intValue() + val.intValue() );
-			} else if ( isLong() ) {
+                        } else if ( isUInt32()) {
+                                setValue( new UInt32(uint32Value().longValue() + val.uint32Value().longValue()) );
+                        } else if ( isLong() ) {
 				setValue( longValue() + val.longValue() );
 			} else if ( isDouble() ) {
 				setValue( doubleValue() + val.doubleValue() );
@@ -870,6 +923,8 @@ public abstract class Value implements Expression, Cloneable
 			}
 		} else if ( isInt() ) {
 			setValue( intValue() - val.intValue() );
+                } else if ( isUInt32()) {
+                        setValue(new UInt32(uint32Value().longValue() - uint32Value().longValue()));
 		} else if ( isLong() ) {
 			setValue( longValue() - val.longValue() );
 		} else if ( isDouble() ) {
@@ -882,7 +937,9 @@ public abstract class Value implements Expression, Cloneable
 		if ( isDefined() ) {
 			if ( isInt() ) {
 				setValue( intValue() * val.intValue() );
-			} else if ( isBool() ) {
+                        } else if ( isUInt32()) {
+                                setValue( new UInt32(uint32Value().longValue() * val.uint32Value().longValue()) );
+                        } else if ( isBool() ) {
 				setValue( boolValue() && val.boolValue() );
 			} else if ( isLong() ) {
 				setValue( longValue() * val.longValue() );
@@ -900,6 +957,8 @@ public abstract class Value implements Expression, Cloneable
 			setValue( 0 );
 		} else if ( isInt() ) {
 			setValue( intValue() / val.intValue() );
+                } else if ( isUInt32()) {
+                        setValue( new UInt32(uint32Value().longValue() / val.uint32Value().longValue()) );
 		} else if ( isLong() ) {
 			setValue( longValue() / val.longValue() );
 		} else if ( isDouble() ) {
@@ -913,6 +972,8 @@ public abstract class Value implements Expression, Cloneable
 			assignValue( val );
 		} else if ( isInt() ) {
 			setValue( intValue() % val.intValue() );
+                } else if ( isUInt32()) {
+                        setValue( new UInt32(uint32Value().longValue() % val.uint32Value().longValue()) );
 		} else if ( isLong() ) {
 			setValue( longValue() % val.longValue() );
 		} else if ( isDouble() ) {
