@@ -24,7 +24,7 @@ import cx.ath.matthew.debug.Debug;
 import cx.ath.matthew.utils.Hexdump;
 
 //import jolie.lang.parse.ast.types.UInt16;
-import jolie.lang.parse.ast.types.UInt32;
+//import jolie.lang.parse.ast.types.UInt32;
 //import jolie.lang.parse.ast.types.UInt64;
 
 import org.freedesktop.dbus.Marshalling;
@@ -820,7 +820,7 @@ public class Message
             rv = buf[ofs[1]++];
             break;
          case ArgumentType.UINT32:
-            rv = new UInt32(demarshallint(buf, ofs[1], 4));
+//            rv = new UInt32(demarshallint(buf, ofs[1], 4));
             ofs[1] += 4;
             break;
          case ArgumentType.INT32:

@@ -31,7 +31,7 @@ import org.freedesktop.dbus.exceptions.DBusException;
 //import org.freedesktop.dbus.types.DBusMapType;
 //import org.freedesktop.dbus.types.DBusStructType;
 //import jolie.lang.parse.ast.types.UInt16;
-import jolie.lang.parse.ast.types.UInt32;
+//import jolie.lang.parse.ast.types.UInt32;
 //import jolie.lang.parse.ast.types.UInt64;
 import cx.ath.matthew.debug.Debug;
 
@@ -190,7 +190,7 @@ public class Marshalling
       //else if (c.equals(UInt16.class)) out[level].append((char) Message.ArgumentType.UINT16);
       else if (c.equals(Integer.class)) out[level].append((char) Message.ArgumentType.INT32);
       else if (c.equals(Integer.TYPE)) out[level].append((char) Message.ArgumentType.INT32);
-      else if (c.equals(UInt32.class)) out[level].append((char) Message.ArgumentType.UINT32);
+//      else if (c.equals(UInt32.class)) out[level].append((char) Message.ArgumentType.UINT32);
       else if (c.equals(Long.class)) out[level].append((char) Message.ArgumentType.INT64);
       else if (c.equals(Long.TYPE)) out[level].append((char) Message.ArgumentType.INT64);
       //else if (c.equals(UInt64.class)) out[level].append((char) Message.ArgumentType.UINT64);
@@ -309,7 +309,7 @@ public class Marshalling
                   rv.add(Integer.class);
                   break;
                case Message.ArgumentType.UINT32:
-                  rv.add(UInt32.class);
+//                  rv.add(UInt32.class);
                   break;
                case Message.ArgumentType.INT64:
                   rv.add(Long.class);
