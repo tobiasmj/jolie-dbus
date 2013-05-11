@@ -505,7 +505,25 @@ public class OLParser extends AbstractParser
 			eat( Scanner.TokenType.RCURLY, "expected }" );
 		}
 	}
-
+        private String parseIdWithPossibleDot() throws IOException, ParserException{
+            String name = token.content();
+            getToken();
+                            // parsing that allows "." in token names  
+            boolean parseMore = true;
+            while (parseMore) {
+                if (token.isNot(Scanner.TokenType.DOT) && !token.isIdentifier()) {
+                    parseMore = false;
+                } else {
+                    if (token.is(Scanner.TokenType.DOT)) {
+                        name = name + ".";
+                    } else if (token.isIdentifier()) {
+                        name = name + token.content();
+                    }
+                    getToken();
+                }
+            }
+            return name;
+        }
 	private static class IncludeFile {
 		private final InputStream inputStream;
 		private final String parentPath;
@@ -651,8 +669,10 @@ public class OLParser extends AbstractParser
 		} else if ( token.isKeyword( "outputPort" ) ) {
 			getToken();
 			assertToken( Scanner.TokenType.ID, "expected output port identifier" );
-			OutputPortInfo p = new OutputPortInfo( getContext(), token.content() );
-			getToken();
+			String name = parseIdWithPossibleDot();
+                        OutputPortInfo p = new OutputPortInfo(getContext(), name);
+                        /*OutputPortInfo p = new OutputPortInfo( getContext(), token.content() );
+			getToken();*/
 			eat( Scanner.TokenType.LCURLY, "expected {" );
 			parseOutputPortInfo( p );
 			program.addChild( p );
@@ -718,8 +738,9 @@ public class OLParser extends AbstractParser
 		
 		getToken();
 		assertToken( Scanner.TokenType.ID, "expected inputPort name" );
-		inputPortName = token.content();
-		getToken();
+		/*inputPortName = token.content();
+		getToken();*/
+                inputPortName = parseIdWithPossibleDot();
 		eat( Scanner.TokenType.LCURLY, "{ expected" );
 		InterfaceDefinition iface = new InterfaceDefinition( getContext(), "Internal interface for: " + inputPortName );
 		
@@ -752,13 +773,15 @@ public class OLParser extends AbstractParser
 				boolean keepRun = true;
 				while( keepRun ) {
 					assertToken( Scanner.TokenType.ID, "expected interface name" );
-					InterfaceDefinition i = interfaces.get( token.content() );
-					if ( i == null ) {
+					//InterfaceDefinition i = interfaces.get( token.content() );
+					String interfaceName = parseIdWithPossibleDot();
+                                        InterfaceDefinition i = interfaces.get(interfaceName);
+                                        if ( i == null ) {
 						throwException( "Invalid interface name: " + token.content() );
 					}
 					i.copyTo( iface );
 					interfaceList.add( i );
-					getToken();
+					//getToken();
 					
 					if ( token.is( Scanner.TokenType.COMMA ) ) {
 						getToken();
@@ -888,8 +911,8 @@ public class OLParser extends AbstractParser
 	{
 		String name;
 		assertToken( Scanner.TokenType.ID, "expected interface extender name" );
-		name = token.content();
-		getToken();
+		name = parseIdWithPossibleDot();
+		//getToken();
 		eat( Scanner.TokenType.LCURLY, "expected {" );
 		InterfaceExtenderDefinition extender = currInterfaceExtender =
 				new InterfaceExtenderDefinition( getContext(), name );
@@ -907,8 +930,8 @@ public class OLParser extends AbstractParser
 		String name;
 		InterfaceDefinition iface = null;
         assertToken( Scanner.TokenType.ID, "expected interface name" );
-		name = token.content();
-		getToken();
+		name = parseIdWithPossibleDot();
+		//getToken();
 		eat( Scanner.TokenType.LCURLY, "expected {" );
 		iface = new InterfaceDefinition( getContext(), name );
 		parseOperations( iface );
@@ -947,15 +970,18 @@ public class OLParser extends AbstractParser
 				getToken();
 				eat( Scanner.TokenType.COLON, "expected : after Interfaces" );
 				boolean r = true;
+                                String name;
 				while( r ) {
-					assertToken( Scanner.TokenType.ID, "expected interface name" );
-					InterfaceDefinition i = interfaces.get( token.content() );
+                                        name = parseIdWithPossibleDot();
+					/*assertToken( Scanner.TokenType.ID, "expected interface name" );
+					InterfaceDefinition i = interfaces.get( token.content() );*/
+                                        InterfaceDefinition i = interfaces.get(name);
 					if ( i == null ) {
 						throwException( "Invalid interface name: " + token.content() );
 					}
 					i.copyTo( p );
 					p.addInterface( i );
-					getToken();
+					//OutputPortInfo( getContext(), token.content() )getToken();
 					
 					if ( token.is( Scanner.TokenType.COMMA ) ) {
 						getToken();
@@ -1255,7 +1281,7 @@ public class OLParser extends AbstractParser
 
 		return retVal;
 	}
-
+        
 	public OLSyntaxNode parseProcess()
 		throws IOException, ParserException
 	{
@@ -1973,8 +1999,9 @@ public class OLParser extends AbstractParser
 		throws IOException, ParserException
 	{
 		ParsingContext context = getContext();
-		String outputPortId = token.content();
-		getToken();
+		/*String outputPortId = token.content();
+		getToken();*/
+                String outputPortId = parseIdWithPossibleDot();
 
 		OLSyntaxNode outputExpression = parseOperationExpressionParameter();
 
