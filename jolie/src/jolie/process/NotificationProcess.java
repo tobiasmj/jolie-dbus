@@ -83,8 +83,8 @@ public class NotificationProcess implements Process
 		try {
 			CommMessage message =
 				( outputExpression == null ) ?
-						CommMessage.createRequest( operationId, outputPort.getResourcePath(), Value.UNDEFINED_VALUE ) :
-						CommMessage.createRequest( operationId, outputPort.getResourcePath(), outputExpression.evaluate() );
+						CommMessage.createRequest( operationId, outputPort.getResourcePath(),outputPort.id(), Value.UNDEFINED_VALUE ) :
+						CommMessage.createRequest( operationId, outputPort.getResourcePath(),outputPort.id(), outputExpression.evaluate() );
 			if ( oneWayDescription != null ) {
 				oneWayDescription.requestType().check( message.value() );
 			}
