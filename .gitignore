@@ -1,0 +1,236 @@
+# misc stuff
+extensions/localsocket/nbproject/build-impl.xml
+extensions/localsocket/nbproject/genfiles.properties
+
+# /dist
+/dist
+
+# /extensions/btl2cap/
+/extensions/btl2cap/build
+/extensions/btl2cap/dist
+
+# /extensions/btl2cap/nbproject/
+/extensions/btl2cap/nbproject/private
+
+# /extensions/dbus/
+/extensions/dbus/build
+/extensions/dbus/dist
+
+# /extensions/dbus/nbproject
+/extensions/dbus/nbproject/private
+
+# /extensions/http/
+/extensions/http/build
+/extensions/http/dist
+
+# /extensions/http/nbproject/
+/extensions/http/nbproject/private
+
+# /extensions/https/
+/extensions/https/build
+/extensions/https/dist
+
+# /extensions/https/nbproject/
+/extensions/https/nbproject/private
+
+# /extensions/jsonrpc/
+/extensions/jsonrpc/dist
+/extensions/jsonrpc/build
+
+# /extensions/jsonrpc/nbproject/
+/extensions/jsonrpc/nbproject/private
+
+# /extensions/localsocket/
+/extensions/localsocket/build
+/extensions/localsocket/dist
+
+# /extensions/localsocket/nbproject/
+/extensions/localsocket/nbproject/private
+
+# /extensions/rmi/
+/extensions/rmi/build
+/extensions/rmi/dist
+
+# /extensions/rmi/nbproject/
+/extensions/rmi/nbproject/private
+
+# /extensions/soap/
+/extensions/soap/build
+/extensions/soap/dist
+
+# /extensions/soap/nbproject/
+/extensions/soap/nbproject/private
+
+# /extensions/sodep/
+/extensions/sodep/build
+/extensions/sodep/dist
+
+# /extensions/sodep/nbproject/
+/extensions/sodep/nbproject/private
+
+# /extensions/sodeps/
+/extensions/sodeps/build
+/extensions/sodeps/dist
+
+# /extensions/sodeps/nbproject/
+/extensions/sodeps/nbproject/private
+
+# /extensions/unix
+/extensions/unix/build
+/extensions/unix/dist
+
+# /extensions/unix/nbproject
+/extensions/unix/nbproject/private
+
+# /extensions/xmlrpc/
+/extensions/xmlrpc/dist
+/extensions/xmlrpc/build
+
+# /extensions/xmlrpc/nbproject/
+/extensions/xmlrpc/nbproject/private
+
+# /javaServices/coreJavaServices/
+/javaServices/coreJavaServices/build
+/javaServices/coreJavaServices/dist
+
+# /javaServices/coreJavaServices/nbproject/
+/javaServices/coreJavaServices/nbproject/private
+
+# /javaServices/monitorJavaServices/nbproject/
+/javaServices/monitorJavaServices/nbproject/private
+/javaServices/monitorJavaServices/build/
+/javaServices/monitorJavaServices/dist/
+
+# /jolie/
+/jolie/releases
+/jolie/doc
+/jolie/.project
+/jolie/.classpath
+/jolie/bin
+/jolie/build
+/jolie/dist
+
+# /jolie/nbproject/
+/jolie/nbproject/configs
+/jolie/nbproject/private
+
+# /jolie/src/
+/jolie/src/images
+
+# /lib/jolie-ssl/
+/lib/jolie-ssl/build
+/lib/jolie-ssl/dist
+
+# /lib/jolie-ssl/nbproject/
+/lib/jolie-ssl/nbproject/private
+
+# /lib/jolie-xml/
+/lib/jolie-xml/dist
+/lib/jolie-xml/build
+
+# /lib/jolie-xml/nbproject/
+/lib/jolie-xml/nbproject/private
+
+# /lib/xsom/
+/lib/xsom/bin
+/lib/xsom/dist
+/lib/xsom/build
+
+# /lib/xsom/nbproject/
+/lib/xsom/nbproject/private
+
+# /libjolie/
+/libjolie/bin
+/libjolie/.classpath
+/libjolie/.project
+/libjolie/dist
+/libjolie/build
+
+# /libjolie/nbproject/
+/libjolie/nbproject/private
+
+# /libjolie/src/jolie/lang/parse/ast/
+/libjolie/src/jolie/lang/parse/ast/.directory
+
+# /playground/echoes-gwt/
+/playground/echoes-gwt/www
+
+# /playground/jolie-javafx/
+/playground/jolie-javafx/dist
+/playground/jolie-javafx/build
+
+# /playground/jolie-javafx/nbproject/
+/playground/jolie-javafx/nbproject/private
+
+# /support/jolie-gwt/
+/support/jolie-gwt/build
+/support/jolie-gwt/dist
+
+# /support/jolie-gwt/nbproject/
+/support/jolie-gwt/nbproject/private
+
+# /support/jolie-java/
+/support/jolie-java/dist
+/support/jolie-java/build
+
+# /support/jolie-java/nbproject/
+/support/jolie-java/nbproject/private
+
+# /support/metaservice-java/
+/support/metaservice-java/build
+/support/metaservice-java/dist
+
+# /support/metaservice-java/nbproject/
+/support/metaservice-java/nbproject/private
+
+# /tools/jolie2dummy/
+/tools/jolie2dummy/dist
+/tools/jolie2dummy/build
+
+# /tools/jolie2java/
+/tools/jolie2java/dist
+/tools/jolie2java/build
+/tools/jolie2java/.directory
+
+# /tools/jolie2java/nbproject/
+/tools/jolie2java/nbproject/private
+
+# /tools/jolie2plasma/
+/tools/jolie2plasma/build
+/tools/jolie2plasma/dist
+
+# /tools/jolie2plasma/nbproject/
+/tools/jolie2plasma/nbproject/private
+
+# /tools/jolie2surface/
+/tools/jolie2surface/dist
+/tools/jolie2surface/build
+
+# /tools/jolie2wsdl/
+/tools/jolie2wsdl/build
+/tools/jolie2wsdl/dist
+
+# /tools/jolie2wsdl/nbproject/
+/tools/jolie2wsdl/nbproject/private
+
+# /tools/joliec/
+/tools/joliec/build
+/tools/joliec/dist
+
+# /tools/joliec/nbproject/
+/tools/joliec/nbproject/private
+
+# /tools/joliedoc/
+/tools/joliedoc/.html
+/tools/joliedoc/dist
+/tools/joliedoc/build
+
+# /tools/joliedoc/nbproject/
+/tools/joliedoc/nbproject/private
+
+# /tools/wsdl2jolie/
+/tools/wsdl2jolie/dist
+/tools/wsdl2jolie/build
+
+#/test/dbus
+/test/dbus
