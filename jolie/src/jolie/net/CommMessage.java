@@ -61,6 +61,7 @@ public class CommMessage implements Serializable
 	private final String operationName;
 	private final String resourcePath;
 	private final Value value;
+        private final String location;
 	private final FaultException fault;
 
 	/**
@@ -71,6 +72,13 @@ public class CommMessage implements Serializable
 	{
 		return resourcePath;
 	}
+        /**
+        * Returns the location name of the message, can be null.
+        * @return the name of the port/location associated with this message or null
+        */
+        public String getLocation(){
+            return location;
+        }
 
 	/**
 	 * Returns <code>true</code> if this message has a generic identifier, <code>false</code> otherwise.
@@ -112,7 +120,9 @@ public class CommMessage implements Serializable
 	{
 		return new CommMessage( getNewMessageId(), operationName, resourcePath, Value.createDeepCopy( value ), null );
 	}
-
+        public static CommMessage createRequest(String operationName, String resourcePath,String location, Value value) {
+                return new CommMessage(getNewMessageId(), operationName, resourcePath,location,Value.createDeepCopy(value), null);
+        }
 	/**
 	 * Creates an empty (i.e. without data) response for the passed request.
 	 * @param request the request message that caused this response
@@ -162,8 +172,26 @@ public class CommMessage implements Serializable
 		this.resourcePath = resourcePath;
 		this.value = value;
 		this.fault = fault;
+                this.location = null;
 	}
-
+       /**
++	 * Constructor
++	 * @param id the identifier for this message
++	 * @param operationName the operation name for this message
++	 * @param resourcePath the resource path for this message
++	 * @param value the message data to equip the message with
++	 * @param fault the fault to equip the message with
++	 */
+	public CommMessage( long id, String operationName, String resourcePath,String location, Value value,  FaultException fault )
+	{
+		this.id = id;
+		this.operationName = operationName;
+		this.resourcePath = resourcePath;
+ 		this.value = value;
+                this.location = location;
+ 		this.fault = fault;
+ 	}
+        
 	/**
 	 * Constructor. The identifier of this message will be generic.
 	 * @param operationName the operation name for this message
