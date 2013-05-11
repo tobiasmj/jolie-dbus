@@ -1,0 +1,73 @@
+10
+
+dir
+2520
+svn://svn.code.sf.net/p/jolie/code/branches/jolie_1_0/lib
+svn://svn.code.sf.net/p/jolie/code
+
+
+
+2012-08-20T12:02:42.031515Z
+2220
+fmontesi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5e5672cc-3d18-0410-aa94-fbf9c4e6f972
+
+xmpp
+dir
+
+javamail
+dir
+
+xsom
+dir
+
+quartz
+dir
+
+commons-lang
+dir
+
+relaxngDatatype
+dir
+
+libmatthew
+dir
+
+jolie-xml
+dir
+
+jolie-ssl
+dir
+
+gwt
+dir
+
+bluetooth
+dir
+
+wsdl4j
+dir
+
+json
+dir
+
+ini4j
+dir
+
+servletapi
+dir
+
