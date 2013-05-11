@@ -2,6 +2,7 @@
 extensions/localsocket/nbproject/build-impl.xml
 extensions/localsocket/nbproject/genfiles.properties
 /.gitignore
+/.svn
 
 # /dist
 /dist
