@@ -1,6 +1,7 @@
 # misc stuff
 extensions/localsocket/nbproject/build-impl.xml
 extensions/localsocket/nbproject/genfiles.properties
+/.gitignore
 
 # /dist
 /dist
@@ -15,6 +16,8 @@ extensions/localsocket/nbproject/genfiles.properties
 # /extensions/dbus/
 /extensions/dbus/build
 /extensions/dbus/dist
+/extensions/dbus/nbproject/build-impl.xml~
+/extensions/dbus/update.sh
 
 # /extensions/dbus/nbproject
 /extensions/dbus/nbproject/private

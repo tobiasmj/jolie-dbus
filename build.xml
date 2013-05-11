@@ -222,6 +222,7 @@ java -cp $JOLIE_HOME/jolie.jar:$JOLIE_HOME/lib/libjolie.jar:$JOLIE_HOME/tools/jo
 		<ant antfile="${project.sodep}/build.xml" inheritall="false" target="jar"/>
 		<ant antfile="${project.jsonrpc}/build.xml" inheritall="false" target="jar"/>
 		<ant antfile="${project.sodeps}/build.xml" inheritall="false" target="jar"/>
+		<ant antfile="${project.dbus}/build.xml" inheritall="false" target="jar"/>
 		<ant antfile="${project.xmlrpc}/build.xml" inheritall="false" target="jar"/>
 		<ant antfile="${project.localsocket}/build.xml" inheritall="false" target="jar"/>
 		<ant antfile="${project.metaservice-java}/build.xml" inheritall="false" target="jar"/>
@@ -251,6 +252,7 @@ java -cp $JOLIE_HOME/jolie.jar:$JOLIE_HOME/lib/libjolie.jar:$JOLIE_HOME/tools/jo
 		<ant antfile="${project.jsonrpc}/build.xml" inheritall="false" target="clean"/>
 		<ant antfile="${project.sodep}/build.xml" inheritall="false" target="clean"/>
 		<ant antfile="${project.sodeps}/build.xml" inheritall="false" target="clean"/>
+		<ant antfile="${project.dbus}/build.xml" inheritall="false" target="clean"/>
 		<ant antfile="${project.xmlrpc}/build.xml" inheritall="false" target="clean"/>
 		<ant antfile="${project.joliedoc}/build.xml" inheritall="false" target="clean"/>
 		<ant antfile="${project.jolie2plasma}/build.xml" inheritall="false" target="clean"/>
@@ -283,6 +285,9 @@ java -cp $JOLIE_HOME/jolie.jar:$JOLIE_HOME/lib/libjolie.jar:$JOLIE_HOME/tools/jo
 				<file file="${project.jolie-gwt}/dist/jolie-gwt.jar"/>
 				<file file="${project.jolie-java}/dist/jolie-java.jar"/>
 				<file file="${project.metaservice-java}/dist/metaservice-java.jar"/>
+				<file file="${project.dbus}/dist/lib/hexdump-0.2.jar"/>
+				<file file="${project.dbus}/dist/lib/debug-enable-1.1.jar"/>
+				<file file="${project.dbus}/dist/lib/libdbus-java-2.7.jar"/>
 			</resources>
 		</copy>
 		<copy todir="dist/extensions" flatten="true">
@@ -297,6 +302,7 @@ java -cp $JOLIE_HOME/jolie.jar:$JOLIE_HOME/lib/libjolie.jar:$JOLIE_HOME/tools/jo
 				<file file="${project.sodeps}/dist/sodeps.jar"/>
 				<file file="${project.xmlrpc}/dist/xmlrpc.jar"/>
 				<file file="${project.localsocket}/dist/localsocket.jar"/>
+				<file file="${project.dbus}/dist/dbus.jar"/>
 			</resources>
 		</copy>
 		<copy todir="dist/javaServices" flatten="true">
