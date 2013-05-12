@@ -38,7 +38,7 @@ import jolie.Interpreter;
 import jolie.lang.Constants;
 import jolie.lang.parse.ast.InterfaceDefinition;
 import jolie.lang.parse.ast.OperationDeclaration;
-//import jolie.lang.parse.ast.types.UInt32;
+import jolie.lang.parse.ast.types.UInt32;
 import jolie.net.protocols.ConcurrentCommProtocol;
 import jolie.runtime.AndJarDeps;
 import jolie.runtime.Value;
@@ -48,7 +48,7 @@ import jolie.util.Pair;
 //import org.freedesktop.dbus.DBusSignal;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.freedesktop.dbus.exceptions.MessageProtocolVersionException;
-import org.freedesktop.dbus.JolieDBusUtils;
+import jolie.runtime.typing.JolieDBusUtils;
 /*import org.freedesktop.dbus.Message;
 import org.freedesktop.dbus.MethodCall;
 import org.freedesktop.dbus.MethodReturn;*/
@@ -60,13 +60,16 @@ import jolie.net.dbus.Message;
 import jolie.net.dbus.MethodCall;
 import jolie.net.dbus.MethodReturn;
 import jolie.net.dbus.DBusSignal;
+import jolie.runtime.InputOperation;
 import jolie.runtime.InvalidIdException;
+import jolie.runtime.typing.Type;
 
 public class DBusProtocol extends ConcurrentCommProtocol {
     private HashMap<Long,MethodCall> _inMethodCalls = new HashMap<Long, MethodCall>(); 
     private HashMap<Long,MethodCall> _outMethodCalls = new HashMap<Long,MethodCall>();
     private HashMap<Long,CommMessage> _inCommMessage = new HashMap<Long, CommMessage>();
     private HashMap<Long,CommMessage> _outSerialMap = new HashMap<Long,CommMessage>();
+    private HashMap<Long,Integer> _inMap = new HashMap<Long, Integer>();
         
     static final byte ENDIAN = Message.Endian.BIG;
     private final boolean _inputport;
@@ -74,7 +77,8 @@ public class DBusProtocol extends ConcurrentCommProtocol {
     private Interpreter _interperter;
     private final boolean _debug;
     private boolean _messageBus;
-    private boolean _authenticated; 
+    private boolean _authenticated;
+    private byte[] _messageBody;
     @Override
     public String name() {
         return "dbus";
@@ -93,7 +97,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         //read the 12 fixed bytes of the message header
         byte[] buf = new byte[12];
         byte[] tbuf;
-        byte[] body = null;
+        _messageBody = null;
         HashMap<Byte, Object> dbusHeaders = new HashMap<Byte, Object>();
         in.read(buf);
 
@@ -153,27 +157,28 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         }
 
         /* read body */
-        if (null == body) {
-            body = new byte[bodyLength];
+        if (null == _messageBody) {
+            _messageBody = new byte[bodyLength];
         }
-        in.read(body, 0, body.length);
+        in.read(_messageBody, 0, _messageBody.length);
 
         /*parse body*/
         Object[] bodyObjects;
+        Value bodyObjectsValue;
         String sig = (String) dbusHeaders.get(new Byte(Message.HeaderField.SIGNATURE));
         try {
-            bodyObjects = JolieDBusUtils.extract(sig, body, endian, new int[]{0, 0});
+            bodyObjects = JolieDBusUtils.extract(sig, _messageBody, endian, new int[]{0, 0});
         } catch (DBusException e) {
             throw new IOException("Error parssing DBus message body : " + e.toString());
         }
 
         /* create the comm message */
-        //CommMessage cm = null;
+
         String path = (String)dbusHeaders.get(Message.HeaderField.PATH);
         String iface = (String)dbusHeaders.get(Message.HeaderField.INTERFACE);
         String member = (String)dbusHeaders.get(Message.HeaderField.MEMBER); 
         String errorName = (String)dbusHeaders.get(Message.HeaderField.ERROR_NAME);
-        org.freedesktop.dbus.UInt32 serial = (org.freedesktop.dbus.UInt32)dbusHeaders.get(Message.HeaderField.REPLY_SERIAL);
+        UInt32 serial = (UInt32)dbusHeaders.get(Message.HeaderField.REPLY_SERIAL);
         String dest = (String)dbusHeaders.get(Message.HeaderField.DESTINATION);
         String source = (String)dbusHeaders.get(Message.HeaderField.SENDER);
         
@@ -185,12 +190,12 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 if(_debug){
                     Interpreter.getInstance().logInfo("Message is a method call");
                 }
-                try {
+                try{
                     msg = new MethodCall(source,dest,path,iface,member,flags,sig,bodyObjects);
-                } catch (DBusException dbe) {
-                    if(_debug){
-                        Interpreter.getInstance().logSevere("Error while parsing message : " + dbe.toString());
-                    }
+                    _inMap.put(msg.getSerial(), senderCookie );
+
+                } catch (DBusException de){
+                    Interpreter.getInstance().logSevere("Error while parsing message : " + de.toString());
                 }
                 break;
             case Message.MessageType.METHOD_RETURN:
@@ -199,7 +204,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 }
                 // get the outgoing methodCall.
                 mc = _outMethodCalls.get(serial.longValue());
-
                 try {
                     msg = new MethodReturn(mc, sig, bodyObjects);
                 } catch(DBusException de) {
@@ -243,12 +247,17 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         CommMessage commMessage = null;
         if(msg instanceof MethodCall){
             try {
-                commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), createValueFromParam(msg.getParameters(), msg.getSig()));
+                InputOperation operation = _interperter.getInputOperation(msg.getName());
+                Type requestType = operation.requestType();
+                Value bodyObjectsValue = JolieDBusUtils.extract(msg.getSig(), _messageBody, msg.getEndian(), new int[]{0, 0},requestType);
+                commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), bodyObjectsValue);
                 _inMethodCalls.put(commMessage.id(), (MethodCall)msg);
                 _inCommMessage.put(commMessage.id(), commMessage);
             } catch (DBusException de ){
                 _interperter.logSevere(de);
-            } 
+            } catch (InvalidIdException iie){
+                _interperter.logSevere(iie);
+            }
         } else if(msg instanceof MethodReturn){
             try {
                 // get the methodCall this is a Return for, and remove it from the outgoing method calls.
@@ -292,14 +301,31 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         String sig = getDBusSignature(message.value());
         Object[] objects = getObjectArray(message.value());
         Message msg = null;
+        
         CommMessage jmc = _inCommMessage.remove(message.id());
         if(jmc != null) {
             // this is a MethodReturn. Get the original MethodCall
-            MethodCall mc = _inMethodCalls.remove(jmc.id()); 
-            try{
-                msg = new MethodReturn(mc,sig,objects);
-            } catch(DBusException de) {
-                _interperter.logSevere(de);
+            _inMap.get(jmc.id());
+            MethodCall mc = _inMethodCalls.remove(jmc.id());
+            
+            
+            //check to se if reply contains a fault
+            if(message.isFault()){
+                ArrayList faultmsg = new ArrayList();
+                faultmsg.add(message.fault().getMessage());
+                try{
+                    msg = new Error(mc.getSource(), message.fault().faultName(), mc.getSerial(), "s", faultmsg.toArray());
+            
+                } catch(DBusException de) {
+                    _interperter.logSevere(de);
+                }
+            } else {
+            
+                try{
+                    msg = new MethodReturn(mc.getSource(), _inMap.remove(mc.getSerial()), sig, objects);
+                } catch(DBusException de) {
+                    _interperter.logSevere(de);
+                }
             }
         } else {
             //MethodCall or signal
@@ -421,7 +447,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
     }
     private void authenticate(InputStream istream, OutputStream ostream) throws IOException {
         if (!_authenticated) {
-            if (!hasParameter("authenticated")) {
+            
                 if (!_messageBus && _inputport) {
                     _authenticated = dBusAuth(ostream, istream, true);
                 } else {
@@ -429,9 +455,9 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                      (setup method was not executed) */
                     _authenticated = dBusAuth(ostream, istream, false);
                 }
-                configurationPath().getValue().getNewChild("authenticated").setValue(_authenticated);
+                //configurationPath().getValue().getNewChild("authenticated").setValue(_authenticated);
 
-            } else {
+            /*} else {
                 _authenticated = checkBooleanParameter("authenticated");
                 if (!_authenticated) {
                     if (!_messageBus && _inputport) {
@@ -443,7 +469,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 } else {
                     Interpreter.getInstance().logInfo("Already Authenticated : true");
                 }
-            }
+            }*/
         }
     }
     private boolean dBusAuth(OutputStream ostream, InputStream istream, boolean server) throws IOException {
@@ -585,9 +611,9 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             } else if (obj instanceof Boolean) {
                 sig += "b";
             } else if (obj instanceof Long) {
-                sig += "t";
- /*           } else if (obj instanceof UInt32) {
-                sig +="u";*/
+                sig += "x";
+            } else if (obj instanceof UInt32) {
+                sig +="u";
             }
 
         }
@@ -619,13 +645,12 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                     case 'b':
                         val = Value.create((Boolean) parameters[i]);
                         break;
-                    case 't':
+                    case 'x':
                         val = Value.create((Long) parameters[i]);
                         break;
                     case 'u':
-//                        org.freedesktop.dbus.UInt32 uint32 = (org.freedesktop.dbus.UInt32)parameters[i];
-//                        val = Value.create(new UInt32(uint32.longValue()));
-                        val = null;
+                        UInt32 uint32 = (UInt32)parameters[i];
+                        val = Value.create(new UInt32(uint32.longValue()));
                         break;
                     default:
                         break;

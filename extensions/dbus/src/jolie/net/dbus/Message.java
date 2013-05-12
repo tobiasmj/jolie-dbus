@@ -24,7 +24,7 @@ import cx.ath.matthew.debug.Debug;
 import cx.ath.matthew.utils.Hexdump;
 
 //import jolie.lang.parse.ast.types.UInt16;
-//import jolie.lang.parse.ast.types.UInt32;
+import jolie.lang.parse.ast.types.UInt32;
 //import jolie.lang.parse.ast.types.UInt64;
 
 import org.freedesktop.dbus.Marshalling;
@@ -1069,6 +1069,13 @@ public class Message
       Object o = headers.get(HeaderField.PATH);
       if (null == o) return null;
       return o.toString();
+   }
+   public byte getEndian(){
+       if(big == true){
+           return Endian.BIG;
+       }else{
+           return Endian.LITTLE;
+       }
    }
    /**
     * Returns the member name or error name this message represents.
