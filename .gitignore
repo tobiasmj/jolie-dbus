@@ -260,3 +260,9 @@ jolie/src/jolie/.svn/entries
 *.netbeans-base
 
 *.svn-base
+
+tools/jolie2surface/build/.svn/entries
+
+tools/jolie2surface/build/classes/.svn/entries
+
+tools/jolie2surface/build/classes/getsurface/.svn/entries
