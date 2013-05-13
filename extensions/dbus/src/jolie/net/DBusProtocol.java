@@ -17,34 +17,25 @@
 package jolie.net;
 
 import cx.ath.matthew.unix.USOutputStream;
-import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Vector;
 import jolie.Interpreter;
-import jolie.lang.Constants;
-import jolie.lang.parse.ast.InterfaceDefinition;
-import jolie.lang.parse.ast.OperationDeclaration;
 import jolie.lang.parse.ast.types.UInt32;
+import jolie.lang.parse.ast.types.UInt16;
+import jolie.lang.parse.ast.types.UInt64;
 import jolie.net.protocols.ConcurrentCommProtocol;
-import jolie.runtime.AndJarDeps;
 import jolie.runtime.Value;
 import jolie.runtime.ValueVector;
 import jolie.runtime.VariablePath;
-import jolie.util.Pair;
 //import org.freedesktop.dbus.DBusSignal;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.freedesktop.dbus.exceptions.MessageProtocolVersionException;
@@ -614,6 +605,14 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 sig += "x";
             } else if (obj instanceof UInt32) {
                 sig +="u";
+            } else if (obj instanceof UInt16) {
+                sig +="q";
+            } else if (obj instanceof Short) {
+                sig +="n";
+            } else if (obj instanceof UInt64) {
+                sig +="t";
+            } else if (obj instanceof Byte) {
+                sig +="y";
             }
 
         }

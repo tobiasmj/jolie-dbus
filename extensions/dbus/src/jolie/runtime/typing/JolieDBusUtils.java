@@ -11,7 +11,6 @@
    Modified to suit Jolie/DBus protocol implementation by Tobias Mandrup Johansen
 
 */
-//package org.freedesktop.dbus;
 package jolie.runtime.typing;
 
 import cx.ath.matthew.debug.Debug;
@@ -28,6 +27,8 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
 import jolie.lang.parse.ast.types.UInt32;
+import jolie.lang.parse.ast.types.UInt16;
+import jolie.lang.parse.ast.types.UInt64;
 import jolie.net.dbus.Marshalling;
 import jolie.runtime.ByteArray;
 import jolie.runtime.Value;
@@ -37,8 +38,6 @@ import org.freedesktop.dbus.exceptions.MarshallingException;
 import org.freedesktop.dbus.exceptions.UnknownTypeCodeException;
 import jolie.net.dbus.Message;
 import org.freedesktop.dbus.AbstractConnection;
-import org.freedesktop.dbus.UInt16;
-import org.freedesktop.dbus.UInt64;
 import org.freedesktop.dbus.Variant;
 
 public class JolieDBusUtils {
@@ -383,10 +382,10 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
         List<Map.Entry<String,jolie.runtime.typing.Type>> subtypes;
         switch (sigb[ofs[0]]) {
             case Message.ArgumentType.BYTE:
-                rv = Value.create(new ByteArray(new byte[]{buf[ofs[1]++]}));
+                rv = Value.create(buf[ofs[1]++]);
                 break;
             case Message.ArgumentType.UINT32:
-                rv = Value.create(new jolie.lang.parse.ast.types.UInt32(Message.demarshallint(buf, ofs[1], endian, 4)));
+                rv = Value.create(new UInt32(Message.demarshallint(buf, ofs[1], endian, 4)));
                 ofs[1] += 4;
                 break;
             case Message.ArgumentType.INT32:
@@ -394,11 +393,11 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                 ofs[1] += 4;
                 break;
             case Message.ArgumentType.INT16:
-                //rv = Value.create((short) Message.demarshallint(buf, ofs[1], endian, 2));
+                rv = Value.create((short) Message.demarshallint(buf, ofs[1], endian, 2));
                 ofs[1] += 2;
                 break;
             case Message.ArgumentType.UINT16:
-                //rv = Value.create(new jolie.lang.parse.ast.types.UInt16((int) Message.demarshallint(buf, ofs[1], endian, 2)));
+                rv = Value.create(new UInt16((int) Message.demarshallint(buf, ofs[1], endian, 2)));
                 ofs[1] += 2;
                 break;
             case Message.ArgumentType.INT64:
@@ -417,7 +416,7 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                     ofs[1] += 4;
                     top = Message.demarshallint(buf, ofs[1], endian, 4);
                 }
-                //rv = Value.create(new jolie.lang.parse.ast.types.UInt64(top, bottom));
+                rv = Value.create(new UInt64(top, bottom));
                 ofs[1] += 4;
                 break;
             case Message.ArgumentType.DOUBLE:
@@ -463,12 +462,12 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                         ofs[1] += size;
                         rv = val;
                         break;
-                    /*case Message.ArgumentType.INT16:
+                    case Message.ArgumentType.INT16:
                         rv = new short[length];
                         for (int j = 0; j < length; j++, ofs[1] += algn) {
                             ((short[]) rv)[j] = (short) Message.demarshallint(buf, ofs[1], endian, algn);
                         }
-                        break;*/
+                        break;
                     case Message.ArgumentType.INT32:
                         vv = ValueVector.create();
                         for (int j = 0; j < length; j++, ofs[1] += algn) {

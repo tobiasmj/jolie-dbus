@@ -24,7 +24,7 @@ import cx.ath.matthew.debug.Debug;
 import cx.ath.matthew.utils.Hexdump;
 
 //import jolie.lang.parse.ast.types.UInt16;
-import jolie.lang.parse.ast.types.UInt32;
+import jolie.lang.parse.ast.types.UInt64;
 //import jolie.lang.parse.ast.types.UInt64;
 
 import org.freedesktop.dbus.Marshalling;
@@ -519,15 +519,6 @@ public class Message
             case ArgumentType.INT64:
                appendint(((Number) data).longValue(), 8);
                break;
-            case ArgumentType.UINT64:
-               if (big) {
-//                  appendint(((UInt64) data).top(), 4);
-//                  appendint(((UInt64) data).bottom(), 4);
-               } else {
-//                  appendint(((UInt64) data).bottom(), 4);
- //                 appendint(((UInt64) data).top(), 4);
-               }
-               break;
             case ArgumentType.INT32:
                appendint(((Number) data).intValue(), 4);
                break;
@@ -536,6 +527,15 @@ public class Message
                break;
             case ArgumentType.INT16:
                appendint(((Number) data).shortValue(), 2);
+               break;
+            case ArgumentType.UINT64:
+               if (big) {
+                  appendint(((UInt64) data).top(), 4);
+                  appendint(((UInt64) data).bottom(), 4);
+               } else {
+                  appendint(((UInt64) data).bottom(), 4);
+                  appendint(((UInt64) data).top(), 4);
+               }
                break;
             case ArgumentType.STRING:
             case ArgumentType.OBJECT_PATH:
