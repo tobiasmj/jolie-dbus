@@ -27,10 +27,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import jolie.lang.parse.ast.types.UInt16;
+import jolie.lang.parse.ast.types.UInt64;
 import jolie.net.CommChannel;
 import jolie.process.TransformationReason;
 import jolie.runtime.typing.TypeCastingException;
@@ -439,13 +442,33 @@ public abstract class Value implements Expression, Cloneable
 	{
 		return new ValueImpl( str );
 	}
+
+        public final static Value create( byte b)
+        {
+                return new ValueImpl( b );
+        }
 	
+        public final static Value create( short s)
+        {
+                return new ValueImpl( s );
+        }
+                
+        public final static Value create( UInt16 ui)
+        {
+                return new ValueImpl( ui );
+        }
+
 	public final static Value create( Integer i )
 	{
 		return new ValueImpl( i );
 	}
         
         public final static Value create( UInt32 ui)
+        {
+                return new ValueImpl( ui );
+        }
+
+        public final static Value create( UInt64 ui)
         {
                 return new ValueImpl( ui );
         }
@@ -546,14 +569,35 @@ public abstract class Value implements Expression, Cloneable
 		setValueObject( object );
 	}
 
+        public final synchronized void setValue( Byte object )
+        {
+                setValueObject( object );
+        }  
+        
+        public final synchronized void setValue( Short object )
+        {
+                setValueObject( object );
+        }  
+        
+        public final synchronized void setValue( UInt16 object )
+        {
+                setValueObject( object );
+        }  
+                
 	public final synchronized void setValue( Integer object )
 	{
 		setValueObject( object );
 	}
+        
         public final synchronized void setValue( UInt32 object )
         {
                 setValueObject( object );
         }       
+        
+        public final synchronized void setValue( UInt64 object )
+        {
+                setValueObject( object );
+        }  
 	public final synchronized void setValue( Double object )
 	{
 		setValueObject( object );
@@ -569,8 +613,16 @@ public abstract class Value implements Expression, Cloneable
 				r = strValue().equals( val.strValue() );
 			} else if ( isInt() ) {
 				r = intValue() == val.intValue();
+			} else if (isByte() ) {
+                                r = byteValue().equals(val.byteValue());                                
+			} else if (isInt16() ) {
+                                r = int16Value().equals(val.int16Value());
+			} else if (isUInt16() ) {
+                                r = uInt16Value().equals(val.uInt16Value());
 			} else if (isUInt32() ) {
-                                r = uint32Value().equals(val.uint32Value());
+                                r = uInt32Value().equals(val.uInt32Value());
+			} else if (isUInt64() ) {
+                                r = uInt64Value().equals(val.uInt64Value());
                         } else if ( isDouble() ) {
 				r = doubleValue() == val.doubleValue();
 			} else if ( isBool() ) {
@@ -595,6 +647,26 @@ public abstract class Value implements Expression, Cloneable
         public synchronized final boolean isUInt32()
         {
                 return ( valueObject() instanceof UInt32);
+        }
+
+        public synchronized final boolean isByte()
+        {
+                return ( valueObject() instanceof Byte);
+        }
+
+        public synchronized final boolean isInt16()
+        {
+                return ( valueObject() instanceof Short);
+        }
+
+        public synchronized final boolean isUInt16()
+        {
+                return ( valueObject() instanceof UInt16);
+        }
+
+        public synchronized final boolean isUInt64()
+        {
+                return ( valueObject() instanceof UInt64);
         }
         
 	public synchronized final boolean isLong()
@@ -684,6 +756,33 @@ public abstract class Value implements Expression, Cloneable
 			throw new TypeCastingException();
 		} else if ( o instanceof ByteArray ) {
 			r = (ByteArray)o;
+		} else if ( o instanceof Byte ) {
+			// TODO: This is slow
+			ByteArrayOutputStream bbstream = new ByteArrayOutputStream( 1 );
+			try {
+				new DataOutputStream( bbstream ).writeByte( ((Byte)o).byteValue() );
+				r = new ByteArray( bbstream.toByteArray() );
+			} catch( IOException e ) {
+				throw new TypeCastingException();
+			}
+		} else if ( o instanceof Short ) {
+			// TODO: This is slow
+			ByteArrayOutputStream bbstream = new ByteArrayOutputStream( 2 );
+			try {
+				new DataOutputStream( bbstream ).writeShort( ((Short)o).shortValue() );
+				r = new ByteArray( bbstream.toByteArray() );
+			} catch( IOException e ) {
+				throw new TypeCastingException();
+			}
+		} else if ( o instanceof UInt16 ) {
+			// TODO: This is slow
+			ByteArrayOutputStream bbstream = new ByteArrayOutputStream( 4 );
+			try {
+				new DataOutputStream( bbstream ).writeInt( ((UInt16)o).intValue() );
+				r = new ByteArray( bbstream.toByteArray() );
+			} catch( IOException e ) {
+				throw new TypeCastingException();
+			}
 		} else if ( o instanceof Integer ) {
 			// TODO: This is slow
 			ByteArrayOutputStream bbstream = new ByteArrayOutputStream( 4 );
@@ -695,9 +794,9 @@ public abstract class Value implements Expression, Cloneable
 			}
 		} else if ( o instanceof UInt32){
                         //TODO: This is slow
-                        ByteArrayOutputStream bbstream = new ByteArrayOutputStream( 4 );
+                        ByteArrayOutputStream bbstream = new ByteArrayOutputStream( 8 );
                         try {
-                            new DataOutputStream(bbstream).writeInt((Integer)o);
+                            new DataOutputStream(bbstream).writeLong(((UInt32)o).longValue());
                             r = new ByteArray(bbstream.toByteArray());
                         } catch (IOException e){
                             throw new TypeCastingException();
@@ -711,6 +810,9 @@ public abstract class Value implements Expression, Cloneable
 			} catch( IOException e ) {
 				throw new TypeCastingException();
 			}
+                } else if ( o instanceof UInt64 ) {
+			// TODO: This is slow
+                        r = new ByteArray(((UInt64)o).value().toByteArray());
 		} else if ( o instanceof Boolean ) {
 			// TODO: This is slow
 			ByteArrayOutputStream bbstream = new ByteArrayOutputStream( 1 );
@@ -734,7 +836,140 @@ public abstract class Value implements Expression, Cloneable
 		}
 		return r;
 	}
-	public UInt32 uint32Value()
+        
+        public Byte byteValue()
+        {
+            try {
+                return byteValueStrict();
+            } catch (TypeCastingException e){
+                return new Byte((byte)0);
+            }
+        }
+        
+        public final synchronized Byte byteValueStrict()
+                throws TypeCastingException
+        {
+                Byte r = new Byte((byte)0);
+                Object o = valueObject();
+                if ( o == null) {
+                    throw new TypeCastingException();
+                } else if ( o instanceof Byte ) {
+                        r = new Byte(((Byte) o).byteValue());
+		} else if ( o instanceof Short ) {
+                        r = new Byte(((Short) o).byteValue());
+		} else if ( o instanceof UInt16 ) {
+                        r = new Byte(((UInt16) o).byteValue());
+                } else if ( o instanceof Integer ) {
+			r = new Byte(((Integer)o).byteValue());
+		} else if ( o instanceof UInt32 ) {
+                        r = new Byte(((UInt32) o).byteValue());
+                } else if ( o instanceof Double ) {
+			r = new Byte(((Double)o).byteValue());
+                } else if ( o instanceof Long ) {
+			r = new Byte(((Long)o).byteValue());
+                } else if ( o instanceof UInt64 ) {
+			r = new Byte(((UInt64)o).byteValue());
+		} else if ( o instanceof Boolean ) {
+			r = new Byte(( ((Boolean) o).booleanValue() == true ) ? (byte)1 : (byte)0);
+		} else if ( o instanceof String ) {
+			try {
+                                r = new Byte(Byte.parseByte(((String)o).trim()));
+			} catch( NumberFormatException nfe ) {
+				throw new TypeCastingException();
+			}
+		} 
+		return r;
+        }
+        
+        public UInt16 uInt16Value()
+        {
+            try {
+                return uInt16ValueStrict();
+            } catch (TypeCastingException e){
+                return new UInt16(0);
+            }
+        }
+        
+        public final synchronized UInt16 uInt16ValueStrict()
+                throws TypeCastingException
+        {
+                UInt16 r = new UInt16(0);
+                Object o = valueObject();
+                if ( o == null) {
+                    throw new TypeCastingException();
+                } else if ( o instanceof Byte ) {
+                        r = new UInt16(((Byte) o).intValue());
+		} else if ( o instanceof Short ) {
+                        r = new UInt16(((Short) o).intValue());
+		} else if ( o instanceof UInt16 ) {
+                        r = new UInt16(((UInt16) o).intValue());
+                } else if ( o instanceof Integer ) {
+			r = new UInt16(((Integer)o).intValue());
+		} else if ( o instanceof UInt32 ) {
+                        r = new UInt16(((UInt32) o).intValue());
+                } else if ( o instanceof Double ) {
+			r = new UInt16(((Double)o).intValue());
+                } else if ( o instanceof Long ) {
+			r = new UInt16(((Long)o).intValue());
+                } else if ( o instanceof UInt64 ) {
+			r = new UInt16(((UInt64)o).intValue());
+		} else if ( o instanceof Boolean ) {
+			r = new UInt16(( ((Boolean) o).booleanValue() == true ) ? 1 : 0);
+		} else if ( o instanceof String ) {
+			try {
+				r = new UInt16(Integer.parseInt( ((String)o).trim() ));
+			} catch( NumberFormatException nfe ) {
+				throw new TypeCastingException();
+			}
+		} 
+		return r;
+        }
+        
+        public Short int16Value()
+        {
+            try {
+                return int16ValueStrict();
+            } catch (TypeCastingException e){
+                return new Short((short)0);
+            }
+        }
+        
+        public final synchronized Short int16ValueStrict()
+                throws TypeCastingException
+        {
+                Short r = new Short((short)0);
+                Object o = valueObject();
+                if ( o == null) {
+                    throw new TypeCastingException();
+                } else if ( o instanceof Byte ) {
+                        r = new Short(((Byte) o).shortValue());
+		} else if ( o instanceof Short ) {
+                        r = ((Short) o);
+		} else if ( o instanceof UInt16 ) {
+                        r = new Short(((UInt16) o).shortValue());
+                } else if ( o instanceof Integer ) {
+			r = new Short(((Integer)o).shortValue());
+		} else if ( o instanceof UInt32 ) {
+                        r = new Short(((UInt32) o).shortValue());
+                } else if ( o instanceof Double ) {
+			r = new Short(((Double)o).shortValue());
+                } else if ( o instanceof Long ) {
+			r = new Short(((Long)o).shortValue());
+                } else if ( o instanceof UInt64 ) {
+			r = new Short(((UInt64)o).shortValue());
+		} else if ( o instanceof Boolean ) {
+			r = new Short((short)(( ((Boolean) o).booleanValue() == true ) ? 1 : 0));
+		} else if ( o instanceof String ) {
+			try {
+				r = new Short(Short.parseShort(((String)o).trim()));
+			} catch( NumberFormatException nfe ) {
+				throw new TypeCastingException();
+			}
+		} 
+		return r;
+        }
+        
+	public UInt32 uInt32Value()
         {
             try {
                 return uInt32ValueStrict();
@@ -746,13 +981,38 @@ public abstract class Value implements Expression, Cloneable
         public final synchronized UInt32 uInt32ValueStrict()
                 throws TypeCastingException
         {
-            Object o = valueObject();
-            if ( o == null || !(o instanceof UInt32)) {
-                throw new TypeCastingException();
-            } else if ( o instanceof UInt32 ) {
-                return (UInt32)o;
-            }
-            return (UInt32)o;
+                UInt32 r = new UInt32(0);
+                Object o = valueObject();
+                if ( o == null) {
+                    throw new TypeCastingException();
+                } else if ( o instanceof Byte ) {
+                        r = new UInt32(((Byte) o).intValue());
+		} else if ( o instanceof Short ) {
+                        r = new UInt32(((Short) o).intValue());
+		} else if ( o instanceof UInt16 ) {
+                        r = new UInt32(((UInt16) o).intValue());
+                } else if ( o instanceof Integer ) {
+			r = new UInt32(((Integer)o).intValue());
+		} else if ( o instanceof UInt32 ) {
+                        r = new UInt32(((UInt32) o).intValue());
+                } else if ( o instanceof Double ) {
+			r = new UInt32(((Double)o).intValue());
+                } else if ( o instanceof Long ) {
+			r = new UInt32(((Long)o).intValue());
+                } else if ( o instanceof UInt64 ) {
+			r = new UInt32(((UInt64)o).intValue());
+		} else if ( o instanceof Boolean ) {
+			r = new UInt32(( ((Boolean) o).booleanValue() == true ) ? 1 : 0);
+		} else if ( o instanceof String ) {
+			try {
+				r = new UInt32(Integer.parseInt( ((String)o).trim() ));
+			} catch( NumberFormatException nfe ) {
+				throw new TypeCastingException();
+			}
+		} 
+		return r;
+
+        
         }
         
 	public int intValue()
@@ -771,12 +1031,22 @@ public abstract class Value implements Expression, Cloneable
 		Object o = valueObject();
 		if ( o == null ) {
 			throw new TypeCastingException();
-		} else if ( o instanceof Integer ) {
+		} else if ( o instanceof Byte ) {
+                        r = ((Byte) o).intValue();
+		} else if ( o instanceof Short ) {
+                        r = ((Short) o).intValue();
+		} else if ( o instanceof UInt16 ) {
+                        r = ((UInt16) o).intValue();
+                } else if ( o instanceof Integer ) {
 			r = ((Integer)o).intValue();
 		} else if ( o instanceof UInt32 ) {
                         r = ((UInt32) o).intValue();
                 } else if ( o instanceof Double ) {
 			r = ((Double)o).intValue();
+                } else if ( o instanceof Long ) {
+			r = ((Long)o).intValue();
+                } else if ( o instanceof UInt64 ) {
+			r = ((UInt64)o).intValue();
 		} else if ( o instanceof Boolean ) {
 			r = ( ((Boolean) o).booleanValue() == true ) ? 1 : 0;
 		} else if ( o instanceof String ) {
@@ -817,7 +1087,51 @@ public abstract class Value implements Expression, Cloneable
 		
 		return r;
 	}
+    
+        public UInt64 uInt64Value()
+	{
+		try {
+			return uInt64ValueStrict();
+		} catch( TypeCastingException e ) {
+			return new UInt64(BigInteger.ZERO);
+		}
+	}
 	
+	public final synchronized UInt64 uInt64ValueStrict()
+		throws TypeCastingException
+	{
+		UInt64 r = new UInt64(0);
+		Object o = valueObject();
+		if ( o == null ) {
+			throw new TypeCastingException();
+		} else if ( o instanceof UInt64 ) {
+			r = (UInt64)o;
+		} else if ( o instanceof Long ) {
+			r = new UInt64(((Long)o).longValue());
+		} else if ( o instanceof Integer ) {
+			r = new UInt64(((Integer)o).longValue());
+                } else if ( o instanceof UInt32) {
+                        r = new UInt64(((UInt32)o).longValue());
+                } else if ( o instanceof UInt16) {
+                        r = new UInt64(((UInt16)o).longValue());
+                } else if ( o instanceof Short) {
+                        r = new UInt64(((Short)o).longValue());
+                } else if ( o instanceof Byte) {
+                        r = new UInt64(((Byte)o).longValue());
+                } else if ( o instanceof Boolean ) {
+			r = new UInt64(( ((Boolean) o).booleanValue() == true ) ? 1L : 0L);
+		} else if ( o instanceof Double ) {
+			r = new UInt64(((Double)o).longValue());
+		} else if ( o instanceof String ) {
+			try {
+				r = new UInt64(Long.parseLong( ((String)o).trim() ));
+			} catch( NumberFormatException nfe ) {
+				throw new TypeCastingException();
+			}
+		}
+		return r;
+	}
+        
 	public long longValue()
 	{
 		try {
@@ -876,6 +1190,16 @@ public abstract class Value implements Expression, Cloneable
                         r = ((UInt32) o).doubleValue();
 		} else if ( o instanceof Double ) {
 			r = ((Double)o).doubleValue();
+		} else if ( o instanceof UInt64 ) {
+			r = ((UInt64)o).doubleValue();
+		} else if ( o instanceof Long ) {
+			r = ((Long)o).doubleValue();
+		} else if ( o instanceof UInt16 ) {
+			r = ((UInt16)o).doubleValue();
+		} else if ( o instanceof Short ) {
+			r = ((Short)o).doubleValue();
+		} else if ( o instanceof Byte ) {
+			r = ((Byte)o).doubleValue();
 		} else if ( o instanceof Boolean ) {
 			r = ( ((Boolean) o).booleanValue() == true ) ? 1.0 : 0.0;
 		} else if ( o instanceof String ) {
@@ -893,10 +1217,18 @@ public abstract class Value implements Expression, Cloneable
 		if ( isDefined() ) {
 			if ( val.isString() ) {
 				setValue( strValue() + val.strValue() );
+			} else if ( isByte() ) {
+				setValue( byteValue() + val.byteValue() );
+			} else if ( isInt16() ) {
+				setValue( int16Value() + val.int16Value() );
+			} else if ( isUInt16() ) {
+				setValue( new UInt16(uInt16Value().intValue() + val.uInt16Value().intValue() ));
 			} else if ( isInt() ) {
 				setValue( intValue() + val.intValue() );
                         } else if ( isUInt32()) {
-                                setValue( new UInt32(uint32Value().longValue() + val.uint32Value().longValue()) );
+                                setValue( new UInt32(uInt32Value().longValue() + val.uInt32Value().longValue()) );
+                        } else if ( isUInt64()) {
+                                setValue( new UInt64(uInt64Value().value().add(val.uInt64Value().value())));
                         } else if ( isLong() ) {
 				setValue( longValue() + val.longValue() );
 			} else if ( isDouble() ) {
@@ -923,10 +1255,18 @@ public abstract class Value implements Expression, Cloneable
 			}
 		} else if ( isInt() ) {
 			setValue( intValue() - val.intValue() );
+                } else if ( isByte()) {
+                        setValue(byteValue().byteValue() - val.byteValue());
+                } else if ( isInt16()) {
+                        setValue(int16Value().shortValue() - val.int16Value().shortValue());
+                } else if ( isUInt16()) {
+                        setValue(new UInt16(uInt16Value().intValue() - val.uInt16Value().intValue()));
                 } else if ( isUInt32()) {
-                        setValue(new UInt32(uint32Value().longValue() - uint32Value().longValue()));
+                        setValue(new UInt32(uInt32Value().longValue() - val.uInt32Value().longValue()));
 		} else if ( isLong() ) {
 			setValue( longValue() - val.longValue() );
+	        } else if ( isUInt64()) {
+                        setValue(new UInt64(uInt64Value().value().subtract(val.uInt64Value().value())));
 		} else if ( isDouble() ) {
 			setValue( doubleValue() - val.doubleValue() );
 		}
@@ -935,14 +1275,22 @@ public abstract class Value implements Expression, Cloneable
 	public synchronized final void multiply( Value val )
 	{
 		if ( isDefined() ) {
+                        } else if ( isByte()) {
+                            setValue(byteValue().byteValue() * val.byteValue());
+                        } else if ( isInt16()) {
+                            setValue(int16Value().shortValue() * val.int16Value().shortValue());
+                        } else if ( isUInt16()) {
+                            setValue(new UInt16(uInt16Value().intValue() * val.uInt16Value().intValue()));
 			if ( isInt() ) {
 				setValue( intValue() * val.intValue() );
                         } else if ( isUInt32()) {
-                                setValue( new UInt32(uint32Value().longValue() * val.uint32Value().longValue()) );
+                                setValue( new UInt32(uInt32Value().longValue() * val.uInt32Value().longValue()) );
                         } else if ( isBool() ) {
 				setValue( boolValue() && val.boolValue() );
 			} else if ( isLong() ) {
 				setValue( longValue() * val.longValue() );
+                        } else if ( isUInt64()) {
+                                setValue( new UInt64(uInt64Value().value().multiply(val.uInt64Value().value())));
 			} else if ( isDouble() ) {
 				setValue( doubleValue() * val.doubleValue() );
 			}
@@ -955,13 +1303,21 @@ public abstract class Value implements Expression, Cloneable
 	{
 		if ( !isDefined() ) {
 			setValue( 0 );
+                } else if ( isByte()) {
+                        setValue(byteValue().byteValue() / val.byteValue());
+                } else if ( isInt16()) {
+                        setValue(int16Value().shortValue() / val.int16Value().shortValue());
+                } else if ( isUInt16()) {
+                        setValue(new UInt16(uInt16Value().intValue() / val.uInt16Value().intValue()));
 		} else if ( isInt() ) {
 			setValue( intValue() / val.intValue() );
                 } else if ( isUInt32()) {
-                        setValue( new UInt32(uint32Value().longValue() / val.uint32Value().longValue()) );
+                        setValue( new UInt32(uInt32Value().longValue() / val.uInt32Value().longValue()) );
 		} else if ( isLong() ) {
 			setValue( longValue() / val.longValue() );
-		} else if ( isDouble() ) {
+		} else if ( isUInt64()) {
+                        setValue( new UInt64(uInt64Value().value().divide(val.uInt64Value().value())));
+                } else if ( isDouble() ) {
 			setValue( doubleValue() / val.doubleValue() );
 		}
 	}
@@ -970,13 +1326,21 @@ public abstract class Value implements Expression, Cloneable
 	{
 		if ( !isDefined() ) {
 			assignValue( val );
+                } else if ( isByte()) {
+                        setValue(byteValue().byteValue() % val.byteValue());
+                } else if ( isInt16()) {
+                        setValue(int16Value().shortValue() % val.int16Value().shortValue());
+                } else if ( isUInt16()) {
+                        setValue(new UInt16(uInt16Value().intValue() % val.uInt16Value().intValue()));                        
 		} else if ( isInt() ) {
 			setValue( intValue() % val.intValue() );
                 } else if ( isUInt32()) {
-                        setValue( new UInt32(uint32Value().longValue() % val.uint32Value().longValue()) );
+                        setValue( new UInt32(uInt32Value().longValue() % val.uInt32Value().longValue()) );
 		} else if ( isLong() ) {
 			setValue( longValue() % val.longValue() );
-		} else if ( isDouble() ) {
+                } else if ( isUInt64()) {
+                        setValue( new UInt64(uInt64Value().value().mod(val.uInt64Value().value())));
+                } else if ( isDouble() ) {
 			setValue( doubleValue() % val.doubleValue() );
 		}
 	}

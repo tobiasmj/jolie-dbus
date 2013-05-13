@@ -167,15 +167,45 @@ class TypeImpl extends Type
 				} catch( TypeCastingException e ) {
 					throw new TypeCastingException( "Cannot cast node value to " + nativeType.id() + ": " + pathBuilder.toString() );
 				}
+			} else if ( nativeType == NativeType.BYTE ) {
+				try {
+					value.setValue( value.byteValueStrict() );
+				} catch( TypeCastingException e ) {
+					throw new TypeCastingException( "Cannot cast node value to " + nativeType.id() + ": " + pathBuilder.toString() );
+				}
+			} else if ( nativeType == NativeType.INT16 ) {
+				try {
+					value.setValue( value.int16ValueStrict() );
+				} catch( TypeCastingException e ) {
+					throw new TypeCastingException( "Cannot cast node value to " + nativeType.id() + ": " + pathBuilder.toString() );
+				}
+			} else if ( nativeType == NativeType.UINT16 ) {
+				try {
+					value.setValue( value.uInt16ValueStrict() );
+				} catch( TypeCastingException e ) {
+					throw new TypeCastingException( "Cannot cast node value to " + nativeType.id() + ": " + pathBuilder.toString() );
+				}
 			} else if ( nativeType == NativeType.INT ) {
 				try {
 					value.setValue( value.intValueStrict() );
 				} catch( TypeCastingException e ) {
 					throw new TypeCastingException( "Cannot cast node value to " + nativeType.id() + ": " + pathBuilder.toString() );
 				}
+			} else if ( nativeType == NativeType.UINT32 ) {
+				try {
+					value.setValue( value.uInt32ValueStrict());
+				} catch( TypeCastingException e ) {
+					throw new TypeCastingException( "Cannot cast node value to " + nativeType.id() + ": " + pathBuilder.toString() );
+				}
 			} else if ( nativeType == NativeType.LONG ) {
 				try {
 					value.setValue( value.longValueStrict() );
+				} catch( TypeCastingException e ) {
+					throw new TypeCastingException( "Cannot cast node value to " + nativeType.id() + ": " + pathBuilder.toString() );
+				}
+			} else if ( nativeType == NativeType.UINT64 ) {
+				try {
+					value.setValue( value.uInt64ValueStrict());
 				} catch( TypeCastingException e ) {
 					throw new TypeCastingException( "Cannot cast node value to " + nativeType.id() + ": " + pathBuilder.toString() );
 				}
@@ -235,6 +265,14 @@ class TypeImpl extends Type
 			return value.isByteArray();
 		} else if ( nativeType == NativeType.UINT32) {
                         return value.isUInt32();
+                } else if ( nativeType == NativeType.UINT16) {
+                        return value.isUInt16();
+                } else if ( nativeType == NativeType.INT16) {
+                        return value.isInt16();
+                } else if ( nativeType == NativeType.UINT64) {
+                        return value.isUInt64();
+                } else if ( nativeType == NativeType.BYTE) {
+                        return value.isByte();
                 }
 
 		return false;

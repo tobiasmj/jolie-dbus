@@ -118,7 +118,9 @@ import jolie.lang.parse.ast.types.TypeDefinition;
 import jolie.lang.parse.ast.types.TypeDefinitionLink;
 import jolie.lang.parse.ast.types.TypeDefinitionUndefined;
 import jolie.lang.parse.ast.types.TypeInlineDefinition;
+import jolie.lang.parse.ast.types.UInt16;
 import jolie.lang.parse.ast.types.UInt32;
+import jolie.lang.parse.ast.types.UInt64;
 import jolie.lang.parse.context.URIParsingContext;
 import jolie.util.Pair;
 import jolie.util.Range;
@@ -2214,15 +2216,27 @@ public class OLParser extends AbstractParser
 		} else if ( token.is( Scanner.TokenType.STRING ) ) {
 			retVal = new ConstantStringExpression( getContext(), token.content() );
 			getToken();
+                } else if ( token.is( Scanner.TokenType.BYTE ) ) {
+                        retVal = new ConstantByteExpression( getContext(), Byte.parseByte(token.content() ) );
+                        getToken();
 		} else if ( token.is( Scanner.TokenType.INT ) ) {
 			retVal = new ConstantIntegerExpression( getContext(), Integer.parseInt( token.content() ) );
 			getToken();
-                } else if ( token.is( Scanner.TokenType.UINT32 ) ) {
+                } else if ( token.is( Scanner.TokenType.INT16 ) ) {
+                        retVal = new ConstantInteger16Expression( getContext(), Short.parseShort(token.content() ) );
+                        getToken();
+		} else if ( token.is( Scanner.TokenType.UINT16 ) ) {
+                        retVal = new ConstantUInteger16Expression( getContext(), UInt16.parseUInt16(token.content() ) );
+                        getToken();
+		} else if ( token.is( Scanner.TokenType.UINT32 ) ) {
                         retVal = new ConstantUInteger32Expression( getContext(), UInt32.parseUInt32(token.content() ) );
                         getToken();
 		} else if ( token.is( Scanner.TokenType.LONG ) ) {
 			retVal = new ConstantLongExpression( getContext(), Long.parseLong( token.content() ) );
 			getToken();
+                } else if ( token.is( Scanner.TokenType.UINT64 ) ) {
+                        retVal = new ConstantUInteger64Expression( getContext(), UInt64.parseUInt64(token.content() ) );
+                        getToken();
 		} else if ( token.is( Scanner.TokenType.TRUE ) ) {
 			retVal = new ConstantBoolExpression( getContext(), true );
 			getToken();

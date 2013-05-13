@@ -223,8 +223,12 @@ public class ProgramInspectorCreatorVisitor implements OLVisitor
 	public void visit( AndConditionNode n ) {}
 	public void visit( NotExpressionNode n ) {}
 	public void visit( CompareConditionNode n ) {}
+        public void visit( ConstantByteExpression n ) {}
+	public void visit( ConstantInteger16Expression n ) {}
+	public void visit( ConstantUInteger16Expression n ) {}
 	public void visit( ConstantIntegerExpression n ) {}
 	public void visit( ConstantUInteger32Expression n ) {}
+	public void visit( ConstantUInteger64Expression n ) {}
 	public void visit( ConstantLongExpression n ) {}
 	public void visit( ConstantBoolExpression n ) {}
 	public void visit( ConstantDoubleExpression n ) {}

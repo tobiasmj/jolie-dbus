@@ -25,7 +25,9 @@ package jolie.net.protocols;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import jolie.lang.parse.ast.types.UInt16;
 import jolie.lang.parse.ast.types.UInt32;
+import jolie.lang.parse.ast.types.UInt64;
 import jolie.net.AbstractCommChannel;
 import jolie.net.CommChannel;
 import jolie.net.CommMessage;
@@ -136,10 +138,26 @@ public abstract class CommProtocol
 	{
 		return ( hasParameter( id ) ? getParameterFirstValue( id ).strValue() : "" );
 	}
+
+        protected Byte getByteParameter( String id){
+                return (hasParameter(id) ? getParameterFirstValue(id).byteValue() : null );
+        }
+        protected UInt16 getUInt16Parameter( String id){
+                return (hasParameter(id) ? getParameterFirstValue(id).uInt16Value() : null );
+        }
+        
+        protected Short getInt16Parameter( String id){
+                return (hasParameter(id) ? getParameterFirstValue(id).int16Value() : null );
+        }
         
         protected UInt32 getUInt32Parameter( String id){
-                return (hasParameter(id) ? getParameterFirstValue(id).uint32Value() : null );
+                return (hasParameter(id) ? getParameterFirstValue(id).uInt32Value() : null );
         }
+        
+        protected UInt64 getUInt64Parameter( String id){
+                return (hasParameter(id) ? getParameterFirstValue(id).uInt64Value() : null );
+        }
+        
 	protected boolean hasOperationSpecificParameter( String operationName, String parameterName )
 	{
 		if ( hasParameter( Parameters.OPERATION_SPECIFIC_CONFIGURATION ) ) {

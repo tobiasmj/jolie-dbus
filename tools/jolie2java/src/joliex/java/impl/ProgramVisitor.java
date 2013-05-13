@@ -416,4 +416,9 @@ public class ProgramVisitor   extends GeneralProgramVisitor implements OLVisitor
 	public void visit( CourierChoiceStatement n ) {}
 	public void visit( NotificationForwardStatement n ) {}
 	public void visit( SolicitResponseForwardStatement n ) {}
+        public void visit(ConstantByteExpression n) {}
+        public void visit(ConstantInteger16Expression n) {}
+        public void visit(ConstantUInteger16Expression n) {}
+        public void visit(ConstantUInteger32Expression n) {}
+        public void visit(ConstantUInteger64Expression n) {}
 }

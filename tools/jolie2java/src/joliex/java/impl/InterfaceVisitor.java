@@ -110,7 +110,7 @@ public class InterfaceVisitor implements OLVisitor
 		new ArrayList< InterfaceDefinition >();
 	private final Set< String > interfaceNames = new HashSet< String >();
 
-	public class InterfaceNotFound extends Exception
+        public class InterfaceNotFound extends Exception
 	{
 		public InterfaceNotFound( String message )
 		{
@@ -222,4 +222,9 @@ public class InterfaceVisitor implements OLVisitor
 	public void visit( CourierChoiceStatement n ) {}
 	public void visit( NotificationForwardStatement n ) {}
 	public void visit( SolicitResponseForwardStatement n ) {}
+        public void visit(ConstantByteExpression n) {}
+        public void visit(ConstantInteger16Expression n) {}
+        public void visit(ConstantUInteger16Expression n) {}
+        public void visit(ConstantUInteger32Expression n) {}
+        public void visit(ConstantUInteger64Expression n) {}        
 }

@@ -45,10 +45,14 @@ public class Scanner
 		COMMA,				///< ,
 		DOT,				///< .
 		INT,				///< [0-9]+
+                BYTE,                           ///< [0-9]+B
 		TRUE,				///< true
 		FALSE,				///< false
 		LONG,				///< [0-9]+L
+                INT16,                          ///< [0-9]+S
+                UINT16,                         ///< [0-9]+US
                 UINT32,                         ///< [0-9]+U
+                UINT64,                         ///< [0-9]+UL
 		DOUBLE,				///< [0-9]*"."[0-9]+(e|E)[0-9]+
 		LPAREN,				///< (
 		RPAREN,				///< )
@@ -604,15 +608,29 @@ public class Scanner
 						}
 					}
 					break;	
-				case 3: // INT (or LONG, or DOUBLE)
+				case 3: // INT (or LONG, or DOUBLE or UIN32 or UINT16 or INT16 or BYTE or UINT64)
 					if ( ch == 'e'|| ch == 'E' ){
 						state = 19;
 					} else if ( !Character.isDigit( ch ) && ch != '.' ) {
 						if ( ch == 'L' ) {
 							retval = new Token( TokenType.LONG, builder.toString() );
 							readChar();
-						} else if ( ch == 'U'){
-                                                        retval = new Token( TokenType.UINT32, builder.toString() );
+                                                } else if ( ch == 'U'){
+                                                        readChar();
+                                                        if(ch == 'L'){
+                                                            retval = new Token(TokenType.UINT64, builder.toString() );
+                                                            readChar();
+                                                        } else if (ch == 'S'){
+                                                            retval = new Token(TokenType.UINT16, builder.toString() );
+                                                            readChar();
+                                                        } else {
+                                                            retval = new Token( TokenType.UINT32, builder.toString() );
+                                                        }
+                                                } else if ( ch == 'S' ) {
+                                                        retval = new Token( TokenType.INT16, builder.toString() );
+                                                        readChar();
+                                                } else if ( ch == 'B'){
+                                                        retval = new Token ( TokenType.BYTE, builder.toString() );
                                                         readChar();
                                                 } else {
 							retval = new Token( TokenType.INT, builder.toString() );

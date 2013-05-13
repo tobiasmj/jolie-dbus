@@ -95,8 +95,12 @@ import jolie.lang.parse.ast.courier.CourierDefinitionNode;
 import jolie.lang.parse.ast.courier.NotificationForwardStatement;
 import jolie.lang.parse.ast.courier.SolicitResponseForwardStatement;
 import jolie.lang.parse.ast.expression.ConstantBoolExpression;
+import jolie.lang.parse.ast.expression.ConstantByteExpression;
+import jolie.lang.parse.ast.expression.ConstantInteger16Expression;
 import jolie.lang.parse.ast.expression.ConstantLongExpression;
+import jolie.lang.parse.ast.expression.ConstantUInteger16Expression;
 import jolie.lang.parse.ast.expression.ConstantUInteger32Expression;
+import jolie.lang.parse.ast.expression.ConstantUInteger64Expression;
 import jolie.lang.parse.ast.expression.InstanceOfExpressionNode;
 import jolie.lang.parse.ast.types.TypeDefinitionLink;
 import jolie.lang.parse.ast.types.TypeInlineDefinition;
@@ -599,6 +603,14 @@ public class OLParseTreeOptimizer
                 
                 public void visit( ConstantUInteger32Expression n ) { currNode = n; }
 		
+                public void visit( ConstantUInteger16Expression n ) { currNode = n; }
+                
+                public void visit( ConstantInteger16Expression n ) { currNode = n; }
+                
+                public void visit( ConstantUInteger64Expression n ) { currNode = n; }
+
+                public void visit( ConstantByteExpression n ) { currNode = n; }
+
 		public void visit( ConstantLongExpression n ) { currNode = n; }
 		
 		public void visit( ConstantBoolExpression n ) { currNode = n; }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) by Fabrizio Montesi                                     *
+ *   Copyright (C) by Tobias Johansen                                      *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Library General Public License as       *
@@ -19,52 +19,30 @@
  *   For details about the authors of this software, see the AUTHORS file. *
  ***************************************************************************/
 
-package jolie.lang.parse.ast.expression;
 
-import jolie.lang.parse.OLVisitor;
-import jolie.lang.parse.ast.OLSyntaxNode;
-import jolie.lang.parse.ast.VariablePathNode;
-import jolie.lang.parse.context.ParsingContext;
+package jolie.runtime.expression;
 
+import jolie.process.TransformationReason;
+import jolie.runtime.Value;
+import jolie.runtime.VariablePath;
 
-public class IsTypeExpressionNode extends OLSyntaxNode
+public class IsUInt32Expression implements Expression
 {
-	public enum CheckType {
-		DEFINED,
-		INT,
-		STRING,
-		DOUBLE,
-		LONG,
-		BOOL,
-                INT16,
-                BYTE,
-                UINT16,
-                UINT32,
-                UINT64
+	private final VariablePath path;
+	
+	public IsUInt32Expression( VariablePath path )
+	{
+		this.path = path;
 	}
 	
-	private final VariablePathNode variablePath;
-	private final CheckType type;
-
-	public IsTypeExpressionNode( ParsingContext context, CheckType type, VariablePathNode variablePath )
+	public Expression cloneExpression( TransformationReason reason )
 	{
-		super( context );
-		this.type = type;
-		this.variablePath = variablePath;
+		return new IsUInt32Expression( path );
 	}
 	
-	public CheckType type()
+	public Value evaluate()
 	{
-		return type;
-	}
-	
-	public VariablePathNode variablePath()
-	{
-		return variablePath;
-	}
-	
-	public void accept( OLVisitor visitor )
-	{
-		visitor.visit( this );
+		Value value = path.getValueOrNull();
+		return Value.create( value != null && value.isInt() );
 	}
 }

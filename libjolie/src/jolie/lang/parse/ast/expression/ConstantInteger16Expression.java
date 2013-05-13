@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) by Fabrizio Montesi                                     *
+ * Copyright (C) 2013 by Tobias Mandrup Johansen <tobias.mandrup@gmail.com>*
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU Library General Public License as       *
@@ -23,44 +23,22 @@ package jolie.lang.parse.ast.expression;
 
 import jolie.lang.parse.OLVisitor;
 import jolie.lang.parse.ast.OLSyntaxNode;
-import jolie.lang.parse.ast.VariablePathNode;
 import jolie.lang.parse.context.ParsingContext;
 
 
-public class IsTypeExpressionNode extends OLSyntaxNode
+public class ConstantInteger16Expression extends OLSyntaxNode
 {
-	public enum CheckType {
-		DEFINED,
-		INT,
-		STRING,
-		DOUBLE,
-		LONG,
-		BOOL,
-                INT16,
-                BYTE,
-                UINT16,
-                UINT32,
-                UINT64
-	}
-	
-	private final VariablePathNode variablePath;
-	private final CheckType type;
+	private final short value;
 
-	public IsTypeExpressionNode( ParsingContext context, CheckType type, VariablePathNode variablePath )
+	public ConstantInteger16Expression( ParsingContext context, short value )
 	{
 		super( context );
-		this.type = type;
-		this.variablePath = variablePath;
+		this.value = value;
 	}
 	
-	public CheckType type()
+	public short value()
 	{
-		return type;
-	}
-	
-	public VariablePathNode variablePath()
-	{
-		return variablePath;
+		return value;
 	}
 	
 	public void accept( OLVisitor visitor )

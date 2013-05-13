@@ -116,7 +116,12 @@ import jolie.lang.parse.ast.courier.NotificationForwardStatement;
 import jolie.lang.parse.ast.courier.SolicitResponseForwardStatement;
 import jolie.lang.parse.ast.expression.ConstantBoolExpression;
 import jolie.lang.parse.ast.expression.ConstantLongExpression;
+import jolie.lang.parse.ast.expression.ConstantIntegerExpression;
 import jolie.lang.parse.ast.expression.ConstantUInteger32Expression;
+import jolie.lang.parse.ast.expression.ConstantInteger16Expression;
+import jolie.lang.parse.ast.expression.ConstantUInteger16Expression;
+import jolie.lang.parse.ast.expression.ConstantUInteger64Expression;
+import jolie.lang.parse.ast.expression.ConstantByteExpression;
 import jolie.lang.parse.ast.expression.InstanceOfExpressionNode;
 import jolie.lang.parse.ast.types.TypeDefinition;
 import jolie.lang.parse.ast.types.TypeDefinitionLink;
@@ -1206,7 +1211,18 @@ public class OOITBuilder implements OLVisitor
 	{
 		currExpression = FreshValueExpression.getInstance();
 	}
-	
+        public void visit( ConstantByteExpression n )
+        {
+                currExpression = Value.create( n.value() );
+        }
+        public void visit( ConstantInteger16Expression n )
+        {
+                currExpression = Value.create( n.value() );
+        }
+	public void visit( ConstantUInteger16Expression n )
+        {
+                currExpression = Value.create( n.value() );
+        }
 	public void visit( ConstantIntegerExpression n )
 	{
 		currExpression = Value.create( n.value() );
@@ -1222,6 +1238,11 @@ public class OOITBuilder implements OLVisitor
 		currExpression = Value.create( n.value() );
 	}
 	
+        public void visit( ConstantUInteger64Expression n )
+        {
+                currExpression = Value.create( n.value() );
+        }
+        
 	public void visit( ConstantBoolExpression n )
 	{
 		currExpression = Value.create( n.value() );
@@ -1314,6 +1335,21 @@ public class OOITBuilder implements OLVisitor
 		} else if ( type == IsTypeExpressionNode.CheckType.INT ) {
 			currExpression =
 				new IsIntExpression( buildVariablePath( n.variablePath() ) );
+		} else if ( type == IsTypeExpressionNode.CheckType.BYTE ) {
+			currExpression =
+				new IsByteExpression( buildVariablePath( n.variablePath() ) );
+		} else if ( type == IsTypeExpressionNode.CheckType.INT16 ) {
+			currExpression =
+				new IsInt16Expression( buildVariablePath( n.variablePath() ) );
+		} else if ( type == IsTypeExpressionNode.CheckType.UINT16 ) {
+			currExpression =
+				new IsUInt16Expression( buildVariablePath( n.variablePath() ) );
+		} else if ( type == IsTypeExpressionNode.CheckType.UINT32 ) {
+			currExpression =
+				new IsUInt32Expression( buildVariablePath( n.variablePath() ) );
+		} else if ( type == IsTypeExpressionNode.CheckType.UINT64 ) {
+			currExpression =
+				new IsUInt64Expression( buildVariablePath( n.variablePath() ) );
 		} else if ( type == IsTypeExpressionNode.CheckType.DOUBLE ) {
 			currExpression =
 				new IsDoubleExpression( buildVariablePath( n.variablePath() ) );
@@ -1347,8 +1383,19 @@ public class OOITBuilder implements OLVisitor
 			currExpression = new CastBoolExpression( currExpression );
 		} else if ( n.type() == NativeType.LONG ) {
 			currExpression = new CastLongExpression( currExpression );
-		}
-	}
+		} else if ( n.type() == NativeType.BYTE ) {
+			currExpression = new CastByteExpression( currExpression);
+		} else if ( n.type() == NativeType.INT16 ) {
+			currExpression = new CastInt16Expression( currExpression);
+		} else if ( n.type() == NativeType.UINT16 ) {
+			currExpression = new CastUInt16Expression( currExpression);
+		} else if ( n.type() == NativeType.UINT32 ) {
+			currExpression = new CastUInt32Expression( currExpression);
+		} else if ( n.type() == NativeType.UINT64 ) {
+			currExpression = new CastUInt64Expression( currExpression);
+	        }
+
+        }
 	
 	public void visit( PreIncrementStatement n )
 	{
