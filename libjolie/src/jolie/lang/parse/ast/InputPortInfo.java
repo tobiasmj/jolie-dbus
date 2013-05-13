@@ -55,7 +55,7 @@ public class InputPortInfo extends PortInfo
 	private final OLSyntaxNode protocolConfiguration;
 	private final AggregationItemInfo[] aggregationList;
 	private final Map< String, String > redirectionMap;
-
+        private final boolean messageBus;
 	public InputPortInfo(
 		ParsingContext context,
 		String id,
@@ -65,14 +65,28 @@ public class InputPortInfo extends PortInfo
 		AggregationItemInfo[] aggregationList,
 		Map< String, String > redirectionMap
 	) {
-		super( context, id );
+		this(context,id,location,protocolId,protocolConfiguration,aggregationList,redirectionMap,false);
+
+	}
+	public InputPortInfo(
+		ParsingContext context,
+		String id,
+		URI location,
+		String protocolId,
+		OLSyntaxNode protocolConfiguration,
+		AggregationItemInfo[] aggregationList,
+		Map< String, String > redirectionMap,
+                boolean messageBus
+	){
+                super( context, id );
 		this.location = location;
 		this.protocolId = protocolId;
 		this.protocolConfiguration = protocolConfiguration;
 		this.aggregationList = aggregationList;
 		this.redirectionMap = redirectionMap;
-	}
-
+                this.messageBus = messageBus;
+        }
+        
 	public AggregationItemInfo[] aggregationList()
 	{
 		return aggregationList;
@@ -102,4 +116,8 @@ public class InputPortInfo extends PortInfo
 	{
 		visitor.visit( this );
 	}
+        
+        public boolean messageBus(){
+            return messageBus;
+        }
 }

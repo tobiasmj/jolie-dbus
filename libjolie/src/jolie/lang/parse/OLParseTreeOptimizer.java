@@ -171,7 +171,8 @@ public class OLParseTreeOptimizer
 								p.protocolId(),
 								currNode,
 								p.aggregationList(),
-								p.redirectionMap()
+								p.redirectionMap(),
+                                                                p.messageBus()
 						);
 				iport.operationsMap().putAll( p.operationsMap() );
 				iport.getInterfaceList().addAll( p.getInterfaceList() );

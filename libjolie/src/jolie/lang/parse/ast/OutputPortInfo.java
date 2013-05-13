@@ -31,6 +31,7 @@ public class OutputPortInfo extends PortInfo
 	private String protocolId = null;
 	private OLSyntaxNode protocolConfiguration = null;
 	private URI location = null;
+        private boolean messageBus;
 	
 	public OutputPortInfo( ParsingContext context, String id )
 	{
@@ -71,4 +72,10 @@ public class OutputPortInfo extends PortInfo
 	{
 		return location;
 	}
+        public boolean messageBus(){
+            return messageBus;
+        }
+        public void setMessageBus(boolean messageBus){
+            this.messageBus = messageBus;
+        }
 }

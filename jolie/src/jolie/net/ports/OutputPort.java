@@ -59,6 +59,7 @@ public class OutputPort extends AbstractIdentifiableObject implements Port
 	private final VariablePath locationVariablePath, protocolVariablePath;
 	private final boolean isConstant;
 	private final Interface iface;
+        private final boolean messageBus;
 
 	/* To be called at runtime, after main is run.
 	 * Requires the caller to set the variables by itself.
@@ -86,6 +87,7 @@ public class OutputPort extends AbstractIdentifiableObject implements Port
 		this.isConstant = false;
 
 		this.iface = Interface.UNDEFINED;
+                this.messageBus = false;
 	}
 	
 	public OutputPort(
@@ -104,6 +106,7 @@ public class OutputPort extends AbstractIdentifiableObject implements Port
 		this.iface = iface;
 		this.locationExpression = locationVariablePath;
 		this.configurationProcess = NullProcess.getInstance();
+                this.messageBus = false;
 	}
 	
 	/**
@@ -116,7 +119,8 @@ public class OutputPort extends AbstractIdentifiableObject implements Port
 			Process protocolConfigurationProcess,
 			URI locationURI,
 			Interface iface,
-			boolean isConstant
+			boolean isConstant,
+                        boolean messageBus
 	) {
 		super( id );
 		this.isConstant = isConstant;
@@ -148,7 +152,9 @@ public class OutputPort extends AbstractIdentifiableObject implements Port
 		}
 		children.add( protocolConfigurationProcess );
 		this.configurationProcess = new SequentialProcess( children.toArray( new Process[ children.size() ] ) );
-	}
+                this.messageBus = messageBus;
+        
+        }
 	
 	/**
 	 * Returns a new message with same operation and value, but resourcePath
@@ -315,4 +321,11 @@ public class OutputPort extends AbstractIdentifiableObject implements Port
 	{
 		return configurationProcess;
 	}
+        /**
+        * Returns true if the port is a messageBus port.
+        * @return Returns true if the port is a messageBus port. 
+        */
+        public boolean messageBus(){
+           return messageBus;
+        }
 }

@@ -24,9 +24,12 @@ import jolie.net.ports.OutputPort;
 import cx.ath.matthew.unix.UnixSocket;
 import cx.ath.matthew.unix.UnixSocketAddress;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import jolie.net.ext.CommChannelFactory;
+import jolie.net.protocols.CommProtocol;
 import jolie.runtime.AndJarDeps;
 
 @AndJarDeps({"unix.jar"})
@@ -44,6 +47,39 @@ public class LocalSocketCommChannelFactory extends CommChannelFactory
 		CommChannel ret = null;
 		try {
 			ret = new LocalSocketCommChannel( socket, location, port.getProtocol() );
+                        if(port.messageBus()){
+                            ret.setParentOutputPort(port);
+                            /*Using reflection to access method, without it will throw an IlligalAccessException,
+                            * This happens when access to a protected method, in a class that in the same packet, 
+                            * but loaded with a different class loader.
+                            * 
+                            * JVM specification 5.3
+                            * At run time, a class or interface is determined not by its name alone, but by a pair:
+                            * its binary name (§4.2.1) and its defining class loader. Each such class or interface
+                            * belongs to a single run-time package. The run-time package of a class or interface
+                            * is determined by the package name and defining class loader of the class or interface.
+                            * 
+                            * JVM specification 5.4.4
+                            * A field or method R is accessible to a class or interface D if and only if any of the
+                            * following conditions are true:
+                            * ...
+                            * R is either protected or has default access (that is, neither public nor protected
+                            * nor private), and is declared by a class in the same run-time package as D.
+                            */ 
+                            try{
+                                Method protocolMethod = StreamingCommChannel.class.getDeclaredMethod("protocol");
+                                protocolMethod.setAccessible(true);
+                        
+                                CommProtocol protocol = (CommProtocol)protocolMethod.invoke(ret);
+                                protocol.setup(socket.getInputStream(), socket.getOutputStream());
+                            } catch (NoSuchMethodException ne){
+                                ne.printStackTrace();
+                            } catch (IllegalAccessException ie){
+                                ie.printStackTrace();
+                            } catch (InvocationTargetException ite){
+                                ite.printStackTrace();
+                            }
+                        }
 		} catch( URISyntaxException e ) {
 			throw new IOException( e );
 		}

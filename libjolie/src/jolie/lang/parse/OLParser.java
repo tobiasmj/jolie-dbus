@@ -738,7 +738,8 @@ public class OLParser extends AbstractParser
 		URI inputPortLocation;
 		List< InterfaceDefinition > interfaceList = new ArrayList< InterfaceDefinition >();
 		OLSyntaxNode protocolConfiguration = new NullProcessStatement( getContext() );
-		
+		boolean messageBus = false;
+                
 		getToken();
 		assertToken( Scanner.TokenType.ID, "expected inputPort name" );
 		/*inputPortName = token.content();
@@ -838,7 +839,20 @@ public class OLParser extends AbstractParser
 				getToken();
 				eat( Scanner.TokenType.COLON, "expected :" );
 				parseAggregationList( aggregationList );
-			} else {
+			} else if ( token.isKeyword("MessageBus")){
+                                getToken();
+				 eat( Scanner.TokenType.COLON, "expected :" );
+                                if(token.is(Scanner.TokenType.TRUE) || token.is(Scanner.TokenType.FALSE)){
+                                    messageBus = Boolean.valueOf(token.content());
+                                    if(messageBus){
+                                        eat(Scanner.TokenType.TRUE,"expected boolean value true|false");
+                                    } else {
+                                        eat(Scanner.TokenType.FALSE,"expected boolean value true|false");
+                                    }
+                                } else {
+                                    throwException("Expected boolean value true|false");
+                                }
+                        } else {
 				throwException( "Unrecognized token in inputPort " + inputPortName );
 			}
 		}
@@ -850,7 +864,7 @@ public class OLParser extends AbstractParser
 		} else if ( protocolId == null && !inputPortLocation.toString().equals( Constants.LOCAL_LOCATION_KEYWORD ) ) {
 			throwException( "expected protocol for inputPort " + inputPortName );
 		}
-		InputPortInfo iport = new InputPortInfo( getContext(), inputPortName, inputPortLocation, protocolId, protocolConfiguration, aggregationList.toArray( new InputPortInfo.AggregationItemInfo[ aggregationList.size() ] ), redirectionMap );
+		InputPortInfo iport = new InputPortInfo( getContext(), inputPortName, inputPortLocation, protocolId, protocolConfiguration, aggregationList.toArray( new InputPortInfo.AggregationItemInfo[ aggregationList.size() ] ), redirectionMap, messageBus );
 		for( InterfaceDefinition i : interfaceList ) {
 			iport.addInterface( i );
 		}
@@ -964,6 +978,7 @@ public class OLParser extends AbstractParser
 		throws IOException, ParserException
 	{
 		boolean keepRun = true;
+                boolean messageBus = false;
 		while ( keepRun ) {
 			if ( token.is( Scanner.TokenType.OP_OW ) ) {
 				parseOneWayOperations( p );
@@ -1034,6 +1049,19 @@ public class OLParser extends AbstractParser
 					getToken();
 					p.setProtocolConfiguration( parseInVariablePathProcess( false ) );
 				}
+                                } else if ( token.isKeyword("MessageBus")){
+                                getToken();
+				eat( Scanner.TokenType.COLON, "expected :" );
+                                if(token.is(Scanner.TokenType.TRUE) || token.is(Scanner.TokenType.FALSE)){
+                                        messageBus = Boolean.valueOf(token.content());
+                                        if(messageBus){
+                                            eat(Scanner.TokenType.TRUE,"expected boolean value true|false");
+                                            p.setMessageBus(true);
+                                        } else {
+                                            eat(Scanner.TokenType.FALSE,"expected boolean value true|false");
+                                            p.setMessageBus(false);
+                                        }
+                                }
 			} else {
 				keepRun = false;
 			}

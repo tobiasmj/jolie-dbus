@@ -205,7 +205,8 @@ public abstract class CommProtocol
 	{
 		return ( hasParameter( id ) ? getParameterFirstValue( id ).intValue() : 0 );
 	}
-	
+        public void setup(InputStream istream, OutputStream ostream) throws IOException{}
+        
 	abstract public CommMessage recv( InputStream istream, OutputStream ostream )
 		throws IOException;
 

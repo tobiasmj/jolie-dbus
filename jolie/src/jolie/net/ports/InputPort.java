@@ -38,6 +38,7 @@ public class InputPort implements Port
 	private final Map< String, AggregatedOperation > aggregationMap;
 	private final Map< String, OutputPort > redirectionMap;
 	private final URI location;
+        private final boolean messageBus;
 
 	/**
 	 * Constructor
@@ -56,14 +57,25 @@ public class InputPort implements Port
 		Map< String, AggregatedOperation > aggregationMap,
 		Map< String, OutputPort > redirectionMap
 	) {
-		this.name = name;
+            this(name,location,protocolConfigurationPath,iface,aggregationMap,redirectionMap,false);
+	}
+	public InputPort(
+		String name,
+		URI location,
+		VariablePath protocolConfigurationPath,
+		Interface iface,
+		Map< String, AggregatedOperation > aggregationMap,
+		Map< String, OutputPort > redirectionMap,
+                boolean messageBus
+	) {
+                this.name = name;
 		this.location = location;
 		this.iface = iface;
 		this.aggregationMap = aggregationMap;
 		this.redirectionMap = redirectionMap;
 		this.protocolConfigurationPath = protocolConfigurationPath;
-	}
-	
+                this.messageBus = messageBus;
+        }
 	/**
 	 * Returns the name of this input port
 	 * @return the name of this input port
@@ -152,4 +164,11 @@ public class InputPort implements Port
 	{
 		return aggregationMap.get( operationName );
 	}
+        /**
+         * Returns true if the port is a messageBus port.
+         * @return Returns true if the port is a messageBus port. 
+         */
+        public boolean messageBus(){
+           return messageBus;
+        }
 }

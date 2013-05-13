@@ -417,7 +417,8 @@ public class OOITBuilder implements OLVisitor
 				protocolConfigurationProcess,
 				n.location(),
 				getOutputPortInterface( n.id() ),
-				isConstant
+				isConstant,
+                                n.messageBus()
 			)
 		);
 	}
@@ -565,7 +566,8 @@ public class OOITBuilder implements OLVisitor
 			protocolConfigurationPath,
 			currentPortInterface,
 			aggregationMap,
-			redirectionMap
+			redirectionMap,
+                        n.messageBus()
 		);
 		
 		if ( n.location().toString().equals( Constants.LOCAL_LOCATION_KEYWORD ) ) {
