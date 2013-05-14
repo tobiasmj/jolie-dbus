@@ -64,7 +64,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         
     static final byte ENDIAN = Message.Endian.BIG;
     private final boolean _inputport;
-    //private final UInt32 _nameRequestFlags;
+    private final UInt32 _nameRequestFlags;
     private Interpreter _interperter;
     private final boolean _debug;
     private boolean _messageBus;
@@ -80,7 +80,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         _inputport = inputport;
         _debug = checkBooleanParameter("debug");
         _interperter = Interpreter.getInstance();
-        //_nameRequestFlags = getUInt32Parameter("nrFlags");
+        _nameRequestFlags = getUInt32Parameter("nrFlags");
     }
    
     private Message readMessage(InputStream in)
@@ -348,11 +348,9 @@ public class DBusProtocol extends ConcurrentCommProtocol {
     //@Override 
     public void setup(InputStream istream, OutputStream ostream) throws IOException {
         if(_inputport){
-            //_messageBus = this.channel().parentInputPort().messageBus();
-            _messageBus = false;
+            _messageBus = this.channel().parentInputPort().messageBus();
         } else {
-            //_messageBus = this.channel().parentOutputPort().messageBus();
-            _messageBus = false;
+            _messageBus = this.channel().parentOutputPort().messageBus();
         }
         authenticate(istream, ostream);
         //Say hello to the server
@@ -394,11 +392,11 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             if(_messageBus && _inputport){
                 Value v = Value.create();
                 ValueVector vv = ValueVector.create();
-                /*if(_nameRequestFlags != null){
+                if(_nameRequestFlags != null){
                     vv.add(Value.create(_nameRequestFlags));
                 } else {
                     vv.add(Value.create(new UInt32(0L)));
-                }*/
+                }
                 v.children().put("p2", vv);
                 vv = ValueVector.create();
                 vv.add(Value.create(this.channel().parentInputPort().name()));
