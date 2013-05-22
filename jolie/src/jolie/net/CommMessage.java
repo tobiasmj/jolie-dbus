@@ -76,7 +76,7 @@ public class CommMessage implements Serializable
         * Returns the destination name of the message, can be null.
         * @return the name of the port/location associated with this message or null
         */
-        public String getLocation(){
+        public String getDestination(){
             return destination;
         }
 

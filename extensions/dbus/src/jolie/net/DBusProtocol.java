@@ -336,9 +336,11 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             }
         } else {
             //MethodCall or signal
-            if(message.getLocation() != null){
+            if(message.getDestination() != null){
+                
                 try {
-                    msg = new MethodCall(message.getLocation(), message.resourcePath(),
+                    
+                    msg = new MethodCall(message.getDestination(), message.resourcePath(),
                             null, message.operationName(), (byte) 0, sig, objects);
                     _outMethodCalls.put(msg.getSerial(), (MethodCall)msg);
                     _outSerialMap.put(msg.getSerial(), message);
