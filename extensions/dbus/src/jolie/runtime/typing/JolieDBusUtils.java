@@ -17,20 +17,19 @@ import cx.ath.matthew.debug.Debug;
 import cx.ath.matthew.utils.Hexdump;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Set;
 import java.util.Vector;
 import jolie.lang.parse.ast.types.UInt32;
 import jolie.lang.parse.ast.types.UInt16;
 import jolie.lang.parse.ast.types.UInt64;
 import jolie.net.dbus.Marshalling;
-import jolie.runtime.ByteArray;
 import jolie.runtime.Value;
 import jolie.runtime.ValueVector;
 import org.freedesktop.dbus.exceptions.DBusException;
@@ -362,16 +361,8 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                 counter++;
             } else {
                 rv = (Value)extractone(sigb, buf, endian, i, false, null,"");
-                //throw new DBusException("Error while demarshalling type");
             }
-            //vv.set(counter,extractone(sigb, buf, endian, i, false,RequestType));
-            //counter++;
         }
-/*        if(vv.size() > 1){
-            rv.children().put("", vv);
-        } else {
-            rv.add(vv.get(0));
-        }*/
         return rv;
     }
     
@@ -380,6 +371,7 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
         Object rv = null;
         ofs[1] = align(ofs[1], sigb[ofs[0]]);
         List<Map.Entry<String,jolie.runtime.typing.Type>> subtypes;
+        Map<String,ValueVector> children;
         switch (sigb[ofs[0]]) {
             case Message.ArgumentType.BYTE:
                 rv = Value.create(buf[ofs[1]++]);
@@ -455,18 +447,22 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                     case Message.ArgumentType.BYTE:
                         byte[] byteArray = new byte[length];
                         System.arraycopy(buf, ofs[1], byteArray, 0, length);
-                        val = Value.create();
+                        vv = ValueVector.create();
                         for(int i = 0; i < byteArray.length;i++){
-                            val.add(Value.create(new ByteArray(new byte[]{byteArray[i]})));
+                            //val.add(Value.create(new ByteArray(new byte[]{byteArray[i]})));
+                            vv.set(i,Value.create((byte)byteArray[i]));
                         }
                         ofs[1] += size;
-                        rv = val;
+                        rv = vv;
                         break;
                     case Message.ArgumentType.INT16:
                         rv = new short[length];
+                        vv = ValueVector.create();
                         for (int j = 0; j < length; j++, ofs[1] += algn) {
-                            ((short[]) rv)[j] = (short) Message.demarshallint(buf, ofs[1], endian, algn);
+                            //((short[]) rv)[j] = (short) Message.demarshallint(buf, ofs[1], endian, algn);
+                            vv.set(j,Value.create((short) Message.demarshallint(buf, ofs[1], endian, algn)));
                         }
+                        rv = vv;
                         break;
                     case Message.ArgumentType.INT32:
                         vv = ValueVector.create();
@@ -522,13 +518,6 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                         int ofssave = ofs[0];
                         long end = ofs[1] + size;
                         
-                        /*if (requestType instanceof jolie.runtime.typing.Type.TypeLink){
-                            jolie.runtime.typing.Type.TypeLink type = (jolie.runtime.typing.Type.TypeLink)requestType;
-                            requestType = (TypeImpl)type.linkedType();
-                        } else if(requestType instanceof TypeImpl){
-                            requestType = (TypeImpl)requestType;
-                        }*/
-                        
                         subtypes = new LinkedList<Map.Entry<String, jolie.runtime.typing.Type>>();
                         if(requestType != null && ((TypeImpl)requestType).subTypeSet() != null){
                             subtypes.addAll(((TypeImpl)requestType).subTypeSet());
@@ -570,19 +559,24 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                         }
                         ofssave = ofs[0];
                         end = ofs[1] + size;
-                        //rv = Value.create();
+
+                        Set<Map.Entry<String, jolie.runtime.typing.Type>> subTypeSet;
+                        subtypes = new LinkedList<Map.Entry<String, Type>>();
                         
-                        /*if (requestType instanceof TypeLink){
-                            TypeLink type = (TypeLink)requestType;
-                            type.
-                            requestType = (TypeImpl)type.linkedType();
-                        } else if(requestType instanceof TypeImpl){
-                            requestType = (TypeImpl)requestType;
-                        }*/
+                        try{
+                            Method typeImplMethod = Type.class.getDeclaredMethod("subTypeSet");
+                            typeImplMethod.setAccessible(true);
+                            subTypeSet = (Set<Map.Entry<String, Type>>)typeImplMethod.invoke(requestType);
+                        } catch(NoSuchMethodException nsme){
+                            throw new DBusException(nsme.toString());
+                        } catch(IllegalAccessException iae) {
+                            throw new DBusException(iae.toString());
+                        } catch(IllegalArgumentException ia){
+                            throw new DBusException(ia.toString());
+                        } catch(InvocationTargetException ite){ throw new DBusException(ite.toString());}
                         
-                        subtypes = new LinkedList<Map.Entry<String, jolie.runtime.typing.Type>>();
-                        if(requestType != null && ((TypeImpl)requestType).subTypeSet() != null){
-                            subtypes.addAll(((TypeImpl)requestType).subTypeSet());
+                        if(requestType != null && subTypeSet != null){
+                            subtypes.addAll(subTypeSet);
                             //sort the list.
                             Collections.sort(subtypes, new Comparator<Map.Entry<String,jolie.runtime.typing.Type>>(){
                                 @Override
@@ -597,7 +591,14 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                         while (ofs[1] < end) {
                             ofs[0] = ofssave;
                             if(subtypes.size() > 0){
-                                arrayVV.set(counter,(Value)extractone(sigb, buf, endian, ofs, true,subtypes.get(counter).getValue(),subtypes.get(counter).getKey()));
+                                Object extracted = extractone(sigb, buf, endian, ofs, true,requestType,name);
+                                if(extracted instanceof Value){
+                                    arrayVV.set(counter, (Value)extracted);
+                                } else if (extracted instanceof ValueVector) {
+                                    Value newVal = Value.create();
+                                    newVal.children().put(name, (ValueVector)extracted);
+                                    arrayVV.set(counter,newVal);
+                                }
                             } else {
                                 arrayVV.set(counter, (Value)extractone(sigb, buf, endian, ofs, true,null,null));
                             }
@@ -607,11 +608,69 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                 }
                 break;
             case Message.ArgumentType.STRUCT1:
-                Vector<Object> contents = new Vector<Object>();
-                while (sigb[++ofs[0]] != Message.ArgumentType.STRUCT2) {
-                    contents.add(extractone(sigb, buf, endian, ofs, true));
+                //Vector<Object> contents = new Vector<Object>();
+                val = Value.create();
+                children = val.children();
+
+                Set<Map.Entry<String, jolie.runtime.typing.Type>> subTypeSet;
+                subtypes = new LinkedList<Map.Entry<String, Type>>();
+                try {
+                    Method typeImplMethod = Type.class.getDeclaredMethod("subTypeSet");
+                    typeImplMethod.setAccessible(true);
+                    subTypeSet = (Set<Map.Entry<String, Type>>) typeImplMethod.invoke(requestType);
+                } catch (NoSuchMethodException nsme) {
+                    throw new DBusException(nsme.toString());
+                } catch (IllegalAccessException iae) {
+                    throw new DBusException(iae.toString());
+                } catch (IllegalArgumentException ia) {
+                    throw new DBusException(ia.toString());
+                } catch (InvocationTargetException ite) {
+                    throw new DBusException(ite.toString());
                 }
-                //rv = contents.toArray();
+                if (requestType != null && subTypeSet != null) {
+                    subtypes.addAll(subTypeSet);
+                    //sort the list.
+                    Collections.sort(subtypes, new Comparator<Map.Entry<String, jolie.runtime.typing.Type>>() {
+                        @Override
+                        public int compare(Map.Entry<String, jolie.runtime.typing.Type> o1, Map.Entry<String, jolie.runtime.typing.Type> o2) {
+                            return o1.getKey().compareTo(o2.getKey());
+                        }
+                    });
+                }
+                counter = 0;
+                Object returnVal;
+                while (sigb[++ofs[0]] != Message.ArgumentType.STRUCT2) {
+                    if(subtypes.size() > 1){
+                        returnVal = extractone(sigb, buf, endian, ofs, false,subtypes.get(counter).getValue(),subtypes.get(counter).getKey());
+                        if(returnVal instanceof Value){
+                            vv = ValueVector.create();
+                            vv.set(0, (Value)returnVal);
+                            children.put(subtypes.get(counter).getKey(), vv);
+                        } else {
+                            children.put(subtypes.get(counter).getKey(), (ValueVector)returnVal);
+                        }
+                    }else if (subtypes.size() == 1){
+                        returnVal = extractone(sigb, buf, endian, ofs, false,subtypes.get(0).getValue(),subtypes.get(0).getKey());
+                        if(returnVal instanceof Value){
+                            vv = ValueVector.create();
+                            vv.set(0, (Value)returnVal);
+                            children.put(subtypes.get(0).getKey(), vv);
+                        } else {
+                            children.put(subtypes.get(0).getKey(), (ValueVector)returnVal);
+                        }
+                    } else {
+                        returnVal = extractone(sigb, buf, endian, ofs, false,requestType,name);                        
+                        if(returnVal instanceof Value){
+                            vv = ValueVector.create();
+                            vv.set(0, (Value)returnVal);
+                            children.put(name, vv);
+                        } else {
+                            children.put(name, (ValueVector)returnVal);
+                        }
+                    }
+                    counter++;
+                }
+                rv = val;
                 break;
             case Message.ArgumentType.DICT_ENTRY1:
                 if (Debug.debug) {
@@ -634,7 +693,7 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                     ofs[0]++;
                     Object tempval = extractone(sigb, buf, endian, ofs, false,subtypes.get(1).getValue(),subtypes.get(1).getKey());
                     Value entry = Value.create();
-                    Map<String,ValueVector> children = entry.children();
+                    children = entry.children();
                     if(key instanceof Value){
                         ValueVector keyVector = ValueVector.create();
                         keyVector.set(0, (Value)key);

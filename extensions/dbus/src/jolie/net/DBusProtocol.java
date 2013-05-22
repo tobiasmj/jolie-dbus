@@ -24,7 +24,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Vector;
@@ -51,6 +53,7 @@ import jolie.net.dbus.Message;
 import jolie.net.dbus.MethodCall;
 import jolie.net.dbus.MethodReturn;
 import jolie.net.dbus.DBusSignal;
+import jolie.net.ports.OutputPort;
 import jolie.runtime.InputOperation;
 import jolie.runtime.InvalidIdException;
 import jolie.runtime.typing.Type;
@@ -155,7 +158,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
 
         /*parse body*/
         Object[] bodyObjects;
-        Value bodyObjectsValue;
+        //Value bodyObjectsValue;
         String sig = (String) dbusHeaders.get(new Byte(Message.HeaderField.SIGNATURE));
         try {
             bodyObjects = JolieDBusUtils.extract(sig, _messageBody, endian, new int[]{0, 0});
@@ -228,6 +231,8 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 }
                 break;
         }
+        
+
         return msg;
     }
    @Override
@@ -241,13 +246,24 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 InputOperation operation = _interperter.getInputOperation(msg.getName());
                 Type requestType = operation.requestType();
                 Value bodyObjectsValue = JolieDBusUtils.extract(msg.getSig(), _messageBody, msg.getEndian(), new int[]{0, 0},requestType);
+                
+                if(msg.getName().equals("Introspect")){
+                    if(!_inputport){
+                        /*for (OutputPort port : _interperter.outputPorts()) {
+                           if(port.getInterface().)
+                        } */                  
+                    }
+                    
+                }
+                
+                
                 commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), bodyObjectsValue);
                 _inMethodCalls.put(commMessage.id(), (MethodCall)msg);
                 _inCommMessage.put(commMessage.id(), commMessage);
             } catch (DBusException de ){
                 _interperter.logSevere(de);
             } catch (InvalidIdException iie){
-                _interperter.logSevere(iie);
+                _interperter.logInfo("Recieved D-Bus Signal for unsuported method " + iie);
             }
         } else if(msg instanceof MethodReturn){
             try {
@@ -345,7 +361,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             }
         }
     }
-    //@Override 
+    @Override 
     public void setup(InputStream istream, OutputStream ostream) throws IOException {
         if(_inputport){
             _messageBus = this.channel().parentInputPort().messageBus();
@@ -520,13 +536,9 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                     ArrayList internalArray = new ArrayList();
                     for (int i = 0; i < vv.size(); i++) {
                         Value internalVal = vv.get(i);
-                        if (!val.children().isEmpty()) {
-                            if (internalVal.hasChildren() && internalVal.children().size() > 1) {
+                        if (internalVal.hasChildren()) {
                                 //children are part of a struct and should be kept as a array
                                 internalArray.add(getObjectArray(internalVal));
-                            } else {
-                                internalArray.add(getObjectArray(internalVal));
-                            }
                         } else if (internalVal.valueObject() != null) {
                             internalArray.add(internalVal.valueObject());
                         }
@@ -535,7 +547,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                         list = new ArrayList();
                     }
                     list.add(internalArray.toArray());
-                } else if (vv.first().children().size() > 1) {
+                } else if (vv.first().hasChildren()) {
                     list.add(getObjectArray(vv.first()));
                 } else {
                     list.add(vv.first().valueObject());
@@ -573,9 +585,10 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                             sig += getDBusSignature(internalVal);
                         }
                     } else if (internalVal.valueObject() != null) {
+                        
                         sig += getDBusValueObjectSignature(internalVal.valueObject());
                     }
-                } else if (vv.first().children().size() > 1) {
+                } else if (vv.first().hasChildren()) {
                     sig += "(";
                     sig += getDBusSignature(vv.first());
                     sig += ")";

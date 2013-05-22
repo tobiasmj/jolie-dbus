@@ -656,6 +656,7 @@ public class Message
                   ensureBuffers(contents.length*4);
                   int diff = i;
                   for (Object o: contents) 
+                      //if(o instanceof arra)
                      diff = appendone(sigb, i, o);
                   i = diff;
                }
