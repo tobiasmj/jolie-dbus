@@ -61,7 +61,7 @@ public class CommMessage implements Serializable
 	private final String operationName;
 	private final String resourcePath;
 	private final Value value;
-        private final String location;
+        private final String destination;
 	private final FaultException fault;
 
 	/**
@@ -73,11 +73,11 @@ public class CommMessage implements Serializable
 		return resourcePath;
 	}
         /**
-        * Returns the location name of the message, can be null.
+        * Returns the destination name of the message, can be null.
         * @return the name of the port/location associated with this message or null
         */
         public String getLocation(){
-            return location;
+            return destination;
         }
 
 	/**
@@ -120,8 +120,8 @@ public class CommMessage implements Serializable
 	{
 		return new CommMessage( getNewMessageId(), operationName, resourcePath, Value.createDeepCopy( value ), null );
 	}
-        public static CommMessage createRequest(String operationName, String resourcePath,String location, Value value) {
-                return new CommMessage(getNewMessageId(), operationName, resourcePath,location,Value.createDeepCopy(value), null);
+        public static CommMessage createRequest(String operationName, String resourcePath,String destination, Value value) {
+                return new CommMessage(getNewMessageId(), operationName, resourcePath,destination,Value.createDeepCopy(value), null);
         }
 	/**
 	 * Creates an empty (i.e. without data) response for the passed request.
@@ -172,7 +172,7 @@ public class CommMessage implements Serializable
 		this.resourcePath = resourcePath;
 		this.value = value;
 		this.fault = fault;
-                this.location = null;
+                this.destination = null;
 	}
        /**
 +	 * Constructor
@@ -182,13 +182,13 @@ public class CommMessage implements Serializable
 +	 * @param value the message data to equip the message with
 +	 * @param fault the fault to equip the message with
 +	 */
-	public CommMessage( long id, String operationName, String resourcePath,String location, Value value,  FaultException fault )
+	public CommMessage( long id, String operationName, String resourcePath,String destination, Value value,  FaultException fault )
 	{
 		this.id = id;
 		this.operationName = operationName;
 		this.resourcePath = resourcePath;
  		this.value = value;
-                this.location = location;
+                this.destination = destination;
  		this.fault = fault;
  	}
         
