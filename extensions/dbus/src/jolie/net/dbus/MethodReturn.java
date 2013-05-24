@@ -16,13 +16,13 @@ import org.freedesktop.dbus.exceptions.DBusException;
 public class MethodReturn extends Message
 {
    MethodReturn() { }
-   public MethodReturn(String dest, long replyserial, String sig, Object... args) throws DBusException
+   public MethodReturn(String dest, long replyserial,byte endian, String sig, Object... args) throws DBusException
    {
-      this(null, dest, replyserial, sig, args);
+      this(null, dest, endian,replyserial, sig, args);
    }
-   public MethodReturn(String source, String dest, long replyserial, String sig, Object... args) throws DBusException
+   public MethodReturn(String source, String dest,byte endian, long replyserial, String sig, Object... args) throws DBusException
    {
-      super(Message.Endian.BIG, Message.MessageType.METHOD_RETURN, (byte) 0);
+      super(endian, Message.MessageType.METHOD_RETURN, (byte) 0);
 
       headers.put(Message.HeaderField.REPLY_SERIAL,replyserial);
 
@@ -54,13 +54,13 @@ public class MethodReturn extends Message
       if (null != sig) append(sig, args);
       marshallint(bytecounter-c, blen, 0, 4);
    }
-   public MethodReturn(MethodCall mc, String sig, Object... args) throws DBusException
+   public MethodReturn(MethodCall mc,byte endian, String sig, Object... args) throws DBusException
    {
-      this(null, mc, sig, args);
+      this(null, mc, endian,sig, args);
    }
-   public MethodReturn(String source, MethodCall mc, String sig, Object... args) throws DBusException
+   public MethodReturn(String source, MethodCall mc, byte endian,String sig, Object... args) throws DBusException
    {
-      this(source, mc.getSource(), mc.getSerial(), sig, args);
+      this(source, mc.getSource(),endian, mc.getSerial(), sig, args);
       this.call = mc;
    }
    MethodCall call;

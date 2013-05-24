@@ -19,13 +19,13 @@ import cx.ath.matthew.utils.Hexdump;
 public class MethodCall extends Message
 {
    MethodCall() { }
-   public MethodCall(String dest, String path, String iface, String member, byte flags, String sig, Object... args) throws DBusException
+   public MethodCall(String dest, String path, String iface, String member,byte endian, byte flags, String sig, Object... args) throws DBusException
    {
-      this(null, dest, path, iface, member, flags, sig, args);
+      this(null, dest, path, iface, member,endian, flags, sig, args);
    }
-   public MethodCall(String source, String dest, String path, String iface, String member, byte flags, String sig, Object... args) throws DBusException
+   public MethodCall(String source, String dest, String path, String iface, String member,byte endian, byte flags, String sig, Object... args) throws DBusException
    {
-      super(Message.Endian.BIG, Message.MessageType.METHOD_CALL, flags);
+      super(endian, Message.MessageType.METHOD_CALL, flags);
 
       if (null == member || null == path)
          throw new MessageFormatException("Must specify destination, path and function name to MethodCalls.");

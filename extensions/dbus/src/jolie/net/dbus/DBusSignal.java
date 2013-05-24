@@ -29,9 +29,9 @@ import cx.ath.matthew.debug.Debug;
 public class DBusSignal extends Message
 {
    DBusSignal() { }
-   public DBusSignal(String source, String path, String iface, String member, String sig, Object... args) throws DBusException
+   public DBusSignal(String source, String path, String iface, String member,byte endian, String sig, Object... args) throws DBusException
    {
-      super(Message.Endian.BIG, Message.MessageType.SIGNAL, (byte) 0);
+      super(endian, Message.MessageType.SIGNAL, (byte) 0);
 
       if (null == path || null == member || null == iface)
          throw new MessageFormatException(_("Must specify object path, interface and signal name to Signals."));
@@ -67,9 +67,9 @@ public class DBusSignal extends Message
    }
    static class internalsig extends DBusSignal
    {
-      public internalsig(String source, String objectpath, String type, String name, String sig, Object[] parameters, long serial) throws DBusException
+      public internalsig(String source, String objectpath, String type, String name,byte endian, String sig, Object[] parameters, long serial) throws DBusException
       {
-         super(source, objectpath, type, name, sig, parameters, serial);
+         super(source, objectpath, type, name,endian, sig, parameters, serial);
       }
    }
    private static Map<Class<? extends DBusSignal>, Type[]> typeCache = new HashMap<Class<? extends DBusSignal>, Type[]>();

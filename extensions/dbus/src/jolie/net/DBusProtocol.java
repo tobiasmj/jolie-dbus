@@ -56,6 +56,9 @@ import jolie.net.dbus.DBusSignal;
 import jolie.net.ports.OutputPort;
 import jolie.runtime.InputOperation;
 import jolie.runtime.InvalidIdException;
+import jolie.runtime.RequestResponseOperation;
+import jolie.runtime.typing.OneWayTypeDescription;
+import jolie.runtime.typing.RequestResponseTypeDescription;
 import jolie.runtime.typing.Type;
 
 public class DBusProtocol extends ConcurrentCommProtocol {
@@ -73,6 +76,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
     private boolean _messageBus;
     private boolean _authenticated;
     private byte[] _messageBody;
+    private ArrayList<String> _rules;
     @Override
     public String name() {
         return "dbus";
@@ -84,6 +88,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         _debug = checkBooleanParameter("debug");
         _interperter = Interpreter.getInstance();
         _nameRequestFlags = getUInt32Parameter("nrFlags");
+
     }
    
     private Message readMessage(InputStream in)
@@ -160,12 +165,15 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         Object[] bodyObjects;
         //Value bodyObjectsValue;
         String sig = (String) dbusHeaders.get(new Byte(Message.HeaderField.SIGNATURE));
-        try {
-            bodyObjects = JolieDBusUtils.extract(sig, _messageBody, endian, new int[]{0, 0});
-        } catch (DBusException e) {
-            throw new IOException("Error parssing DBus message body : " + e.toString());
+        if(sig != null && sig != ""){
+            try {
+                bodyObjects = JolieDBusUtils.extract(sig, _messageBody, endian, new int[]{0, 0});
+            } catch (DBusException e) {
+                throw new IOException("Error parssing DBus message body : " + e.toString());
+            }
+        } else {
+            bodyObjects = null;
         }
-
         /* create the comm message */
 
         String path = (String)dbusHeaders.get(Message.HeaderField.PATH);
@@ -185,7 +193,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                     Interpreter.getInstance().logInfo("Message is a method call");
                 }
                 try{
-                    msg = new MethodCall(source,dest,path,iface,member,flags,sig,bodyObjects);
+                    msg = new MethodCall(source,dest,path,iface,member,endian,flags,sig,bodyObjects);
                     _inMap.put(msg.getSerial(), senderCookie );
 
                 } catch (DBusException de){
@@ -199,7 +207,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 // get the outgoing methodCall.
                 mc = _outMethodCalls.get(serial.longValue());
                 try {
-                    msg = new MethodReturn(mc, sig, bodyObjects);
+                    msg = new MethodReturn(mc,endian, sig, bodyObjects);
                 } catch(DBusException de) {
                     _interperter.logSevere(de);
                 }
@@ -215,7 +223,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                                             "\n path : " + path);
                 }
                 try {
-                    msg = new DBusSignal(source, path, iface, member, sig, bodyObjects);
+                    msg = new DBusSignal(source, path, iface, member,endian, sig, bodyObjects);
                 } catch (DBusException de){
                     _interperter.logSevere(de);
                 }
@@ -242,57 +250,82 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         Message msg = readMessage(istream);
         CommMessage commMessage = null;
         if(msg instanceof MethodCall){
-            try {
-                InputOperation operation = _interperter.getInputOperation(msg.getName());
-                Type requestType = operation.requestType();
-                Value bodyObjectsValue = JolieDBusUtils.extract(msg.getSig(), _messageBody, msg.getEndian(), new int[]{0, 0},requestType);
-                
-                if(msg.getName().equals("Introspect")){
-                    if(!_inputport){
-                        /*for (OutputPort port : _interperter.outputPorts()) {
-                           if(port.getInterface().)
-                        } */                  
+            if (channel().parentPort().getInterface().containsOperation(msg.getName())) {
+                try {
+                    InputOperation operation = _interperter.getInputOperation(msg.getName());
+                    Type requestType = operation.requestType();
+                    Value bodyObjectsValue = null;
+                    if (msg.getSig() != null && msg.getSig() != "") {
+                        bodyObjectsValue = JolieDBusUtils.extract(msg.getSig(), _messageBody, msg.getEndian(), new int[]{0, 0}, requestType);
                     }
-                    
+                    if (msg.getName().equals("Introspect")) {
+                        if (!_inputport) {
+                            /*for (OutputPort port : _interperter.outputPorts()) {
+                             if(port.getInterface().)
+                             } */
+                        }
+                    }
+                    commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), bodyObjectsValue);
+                    _inMethodCalls.put(commMessage.id(), (MethodCall) msg);
+                    _inCommMessage.put(commMessage.id(), commMessage);
+                } catch (DBusException de) {
+                    _interperter.logSevere(de);
+                } catch (InvalidIdException iie) {
+                    _interperter.logInfo("Recieved D-Bus method call for unsuported method " + iie);
                 }
-                
-                
-                commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), bodyObjectsValue);
-                _inMethodCalls.put(commMessage.id(), (MethodCall)msg);
-                _inCommMessage.put(commMessage.id(), commMessage);
-            } catch (DBusException de ){
-                _interperter.logSevere(de);
-            } catch (InvalidIdException iie){
-                _interperter.logInfo("Recieved D-Bus Signal for unsuported method " + iie);
+            } else {
+                 _interperter.logInfo("Recieved D-Bus method call for unsuported method " + msg.getName());
+                 commMessage = CommMessage.createRequest("", "/", Value.UNDEFINED_VALUE);
             }
         } else if(msg instanceof MethodReturn){
-            try {
-                // get the methodCall this is a Return for, and remove it from the outgoing method calls.
-                MethodCall mc = _outMethodCalls.remove(msg.getReplySerial());
-                if(mc!= null) {
+            // get the methodCall this is a Return for, and remove it from the outgoing method calls.
+            MethodCall mc = _outMethodCalls.remove(msg.getReplySerial());
+            if(mc!= null && channel().parentPort().getInterface().containsOperation(msg.getName())) {
+                try {
+                    OutputPort out = _interperter.getOutputPort(mc.getDestination());
+                    RequestResponseTypeDescription rrTypeDescription = out.getInterface().requestResponseOperations().get(mc.getName());
+                    Type responseType = rrTypeDescription.responseType();
+                    Value bodyObjectsValue = Value.UNDEFINED_VALUE;
+                    if(msg.getSig() != null && !msg.getSig().equals("")){
+                        bodyObjectsValue = JolieDBusUtils.extract(msg.getSig(), _messageBody, msg.getEndian(), new int[]{0, 0},responseType);
+                    }    
+                    
                     // get the calling commMessage.
                     CommMessage requestMessage = _outSerialMap.remove(Long.valueOf(mc.getSerial()));
                     if(requestMessage != null){
-                        commMessage = CommMessage.createResponse(requestMessage, createValueFromParam(msg.getParameters(), msg.getSig()));
+                        commMessage = CommMessage.createResponse(requestMessage, bodyObjectsValue);
                     }
+                
+                } catch (DBusException de){
+                    _interperter.logSevere(de);
+                } catch (UnsupportedOperationException uoe){
+                    _interperter.logSevere(uoe);
+                } catch (InvalidIdException iee){
+                    _interperter.logSevere(iee);
                 }
-            } catch (DBusException de){
-                _interperter.logSevere(de);
-            } 
+            } else {
+                 commMessage = CommMessage.createEmptyResponse(CommMessage.createRequest("", "/", Value.UNDEFINED_VALUE));
+            }
         } else if(msg instanceof DBusSignal) {
-            try{
-                // create a request if matches with one-way.
-                try{
+             if (channel().parentPort().getInterface().containsOperation(msg.getName())) {
+               try{
+                    InputOperation operation = _interperter.getInputOperation(msg.getName());
+                    Type requestType = operation.requestType();
+                    Value bodyObjectsValue = Value.UNDEFINED_VALUE;
+                    if(msg.getSig() != null && !msg.getSig().equals("")){
+                        bodyObjectsValue = JolieDBusUtils.extract(msg.getSig(), _messageBody, msg.getEndian(), new int[]{0, 0},requestType);
+                    } 
                     Interpreter.getInstance().getOneWayOperation(msg.getName());
-                    commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), createValueFromParam(msg.getParameters(), msg.getSig()));
+                    commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), bodyObjectsValue);
                     // no storing of request since its a one-way and no return will be sent.
                 } catch(InvalidIdException iie){
                   // ignore signal since the instance does not support a one-way message for this member/name 
                     _interperter.logInfo("Recieved D-Bus Signal for unsuported one-way method: " + iie);
+                } catch (DBusException de) {
+                    _interperter.logSevere(de);
                 }
-                
-            } catch (DBusException de) {
-                _interperter.logSevere(de);
+            } else {
+                 commMessage = CommMessage.createRequest("", "/", Value.UNDEFINED_VALUE);
             }
         } else if(msg instanceof Error){
             _interperter.logSevere(((Error)msg).getName());
@@ -329,7 +362,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             } else {
             
                 try{
-                    msg = new MethodReturn(mc.getSource(), _inMap.remove(mc.getSerial()), sig, objects);
+                    msg = new MethodReturn(mc.getSource(), _inMap.remove(mc.getSerial()),Message.Endian.BIG, sig, objects);
                 } catch(DBusException de) {
                     _interperter.logSevere(de);
                 }
@@ -337,22 +370,38 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         } else {
             //MethodCall or signal
             if(message.getDestination() != null){
-                
+                boolean signal = false;
+                try{
+                    OutputPort out = _interperter.getOutputPort(message.getDestination()); 
+                    OneWayTypeDescription signalTest = out.getInterface().oneWayOperations().get(message.operationName());
+                    if(signalTest == null)
+                    {
+                        signal = false;
+                    }
+                } catch (InvalidIdException iie) {
+                    signal = false;
+                }
+                String resourcePath;
+                if(hasParameter("object_path")){
+                    resourcePath = getStringParameter("object_path");
+                } else {
+                    resourcePath = message.resourcePath();
+                }
                 try {
-                    
-                    msg = new MethodCall(message.getDestination(), message.resourcePath(),
-                            null, message.operationName(), (byte) 0, sig, objects);
-                    _outMethodCalls.put(msg.getSerial(), (MethodCall)msg);
-                    _outSerialMap.put(msg.getSerial(), message);
+                    if(!signal){
+                        msg = new MethodCall(message.getDestination(), resourcePath,
+                            null, message.operationName(),Message.Endian.BIG, (byte) 0, sig, objects);
+                        _outMethodCalls.put(msg.getSerial(), (MethodCall)msg);
+                        _outSerialMap.put(msg.getSerial(), message);
+                    } else {
+                        // TODO add interface information. 
+                        msg = new DBusSignal(null, resourcePath, "dk.itu.TestTypes", message.operationName(),Message.Endian.BIG, sig, objects);
+                    }
                 } catch (DBusException dbe) {
                     _interperter.logSevere(dbe);
                 }
-            } else {
-                //signal
-                //TODO: need the interface for the message
-                if(message.operationName() != null && message.resourcePath() != null) {
-                }
-            }
+            }// else probably garbage from incomming message/signal to an unsupported method. 
+             
         }
         if (msg != null){
             for (byte[] buf : msg.getWireData()) {
@@ -367,6 +416,20 @@ public class DBusProtocol extends ConcurrentCommProtocol {
     public void setup(InputStream istream, OutputStream ostream) throws IOException {
         if(_inputport){
             _messageBus = this.channel().parentInputPort().messageBus();
+            
+            if(getParameterVector("matchRules") != null){
+                _rules = new ArrayList<String>();
+                ValueVector vv = getValueVectorParameter("matchRules");
+                if(vv != null){
+                    Iterator itr = vv.iterator();
+                    while(itr.hasNext()){
+                        Object rule = itr.next();
+                        if (rule instanceof Value){
+                            _rules.add(((Value)rule).strValue());
+                        }
+                    }
+                }
+            } 
         } else {
             _messageBus = this.channel().parentOutputPort().messageBus();
         }
@@ -446,6 +509,42 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                         // continue reading untill methodReturn
                     }
                 }
+                
+                //MatchRule setup
+                for(String rule : _rules){
+                    v = Value.create(rule);
+                    comm = CommMessage.createRequest("AddMatch", "/", "org.freedesktop.DBus", v);
+                    send(ostream, comm, istream);
+                    run = true;
+                    while(run){
+                        rply = readMessage(dis);
+                        if(rply instanceof MethodReturn){
+                            sig = rply.getSig();
+                            if(sig != null && sig != ""){
+                                try {
+                                parameters = rply.getParameters();
+                                    valueObject = createValueFromParam(parameters, sig);
+                                } catch (DBusException de){
+                                    _interperter.logSevere(de);
+                                }
+                            }
+                            _interperter.logInfo("Recieved methodReturn" + "\n signature : " + sig);
+                            run = false;
+                        } else if(rply instanceof DBusSignal) {
+                            // there might be a name aquired signal
+                            _interperter.logInfo("Recieved signal with name : " + rply.getName());
+                            // read more messages 
+                        } else if(rply instanceof Error) {
+                            _interperter.logInfo("Recieved Error with name : " + rply.getName());
+                            // continue reading untill methodReturn
+                        } else if(rply instanceof MethodCall) {
+                            _interperter.logInfo("Recieved methodCall with name : " + rply.getName());
+                            // continue reading untill methodReturn
+                        }
+                    }
+                    
+                }
+                
             }
             ostream.flush();
         } else if(!_authenticated){

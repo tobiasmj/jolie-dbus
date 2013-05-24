@@ -360,7 +360,7 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                 }
                 counter++;
             } else {
-                rv = (Value)extractone(sigb, buf, endian, i, false, null,"");
+                rv = (Value)extractone(sigb, buf, endian, i, false, requestType,"");
             }
         }
         return rv;

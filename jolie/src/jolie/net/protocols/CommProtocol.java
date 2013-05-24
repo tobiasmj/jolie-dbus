@@ -158,6 +158,10 @@ public abstract class CommProtocol
                 return (hasParameter(id) ? getParameterFirstValue(id).uInt64Value() : null );
         }
         
+        protected ValueVector getValueVectorParameter(String id){
+                    return (hasParameter(id) ? getParameterVector(id) : null);
+        }
+        
 	protected boolean hasOperationSpecificParameter( String operationName, String parameterName )
 	{
 		if ( hasParameter( Parameters.OPERATION_SPECIFIC_CONFIGURATION ) ) {
