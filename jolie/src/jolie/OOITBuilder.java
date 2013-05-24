@@ -416,14 +416,14 @@ public class OOITBuilder implements OLVisitor
 				n.protocolId(),
 				protocolConfigurationProcess,
 				n.location(),
-				getOutputPortInterface( n.id() ),
+				getOutputPortInterface( n.id(), n.getInterfaceList() ),
 				isConstant,
                                 n.messageBus()
 			)
 		);
 	}
 
-	private Interface getOutputPortInterface( String outputPortName )
+	private Interface getOutputPortInterface( String outputPortName, List<InterfaceDefinition> interfaceList )
 	{
 		Map< String, OneWayTypeDescription > oneWayMap = notificationTypes.get( outputPortName );
 		if ( oneWayMap == null ) {
@@ -433,7 +433,7 @@ public class OOITBuilder implements OLVisitor
 		if ( rrMap == null ) {
 			rrMap = new HashMap< String, RequestResponseTypeDescription >();
 		}
-		return new Interface( oneWayMap, rrMap );
+		return new Interface( oneWayMap, rrMap, interfaceList );
 	}
 	
 	public void visit( EmbeddedServiceNode n )

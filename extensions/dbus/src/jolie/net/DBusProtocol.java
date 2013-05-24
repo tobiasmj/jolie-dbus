@@ -280,7 +280,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         } else if(msg instanceof MethodReturn){
             // get the methodCall this is a Return for, and remove it from the outgoing method calls.
             MethodCall mc = _outMethodCalls.remove(msg.getReplySerial());
-            if(mc!= null && channel().parentPort().getInterface().containsOperation(msg.getName())) {
+            if(mc!= null && channel().parentPort().getInterface().containsOperation(mc.getName())) {
                 try {
                     OutputPort out = _interperter.getOutputPort(mc.getDestination());
                     RequestResponseTypeDescription rrTypeDescription = out.getInterface().requestResponseOperations().get(mc.getName());
@@ -374,9 +374,9 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 try{
                     OutputPort out = _interperter.getOutputPort(message.getDestination()); 
                     OneWayTypeDescription signalTest = out.getInterface().oneWayOperations().get(message.operationName());
-                    if(signalTest == null)
+                    if(signalTest != null)
                     {
-                        signal = false;
+                        signal = true;
                     }
                 } catch (InvalidIdException iie) {
                     signal = false;
@@ -395,7 +395,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                         _outSerialMap.put(msg.getSerial(), message);
                     } else {
                         // TODO add interface information. 
-                        msg = new DBusSignal(null, resourcePath, "dk.itu.TestTypes", message.operationName(),Message.Endian.BIG, sig, objects);
+                        msg = new DBusSignal(null, resourcePath, message.getInterfaceDefinition().name(), message.operationName(),Message.Endian.BIG, sig, objects);
                     }
                 } catch (DBusException dbe) {
                     _interperter.logSevere(dbe);
@@ -437,7 +437,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         //Say hello to the server
         if(_authenticated){
             DataInputStream dis = new DataInputStream(istream);
-            CommMessage comm = CommMessage.createRequest("Hello","/","org.freedesktop.DBus", Value.UNDEFINED_VALUE);
+            CommMessage comm = CommMessage.createRequest("Hello","/",null,"org.freedesktop.DBus", Value.UNDEFINED_VALUE);
             Message rply = null;
             send(ostream, comm, istream);
             Object[] parameters = null;
@@ -482,7 +482,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 vv = ValueVector.create();
                 vv.add(Value.create(this.channel().parentInputPort().name()));
                 v.children().put("p1", vv);
-                comm = CommMessage.createRequest("RequestName", "/", "org.freedesktop.DBus", v);
+                comm = CommMessage.createRequest("RequestName", "/",null, "org.freedesktop.DBus", v);
                 send(ostream, comm, istream);
                 run = true;
                 while(run){
@@ -513,7 +513,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 //MatchRule setup
                 for(String rule : _rules){
                     v = Value.create(rule);
-                    comm = CommMessage.createRequest("AddMatch", "/", "org.freedesktop.DBus", v);
+                    comm = CommMessage.createRequest("AddMatch", "/",null, "org.freedesktop.DBus", v);
                     send(ostream, comm, istream);
                     run = true;
                     while(run){

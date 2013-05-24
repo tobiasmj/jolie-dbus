@@ -25,6 +25,7 @@ package jolie.net;
 
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicLong;
+import jolie.lang.parse.ast.InterfaceDefinition;
 import jolie.runtime.FaultException;
 import jolie.runtime.Value;
 
@@ -61,6 +62,7 @@ public class CommMessage implements Serializable
 	private final String operationName;
 	private final String resourcePath;
 	private final Value value;
+        private final InterfaceDefinition iface;
         private final String destination;
 	private final FaultException fault;
 
@@ -79,7 +81,13 @@ public class CommMessage implements Serializable
         public String getDestination(){
             return destination;
         }
-
+        /**
+        * Returns the interface of the message, can be null.
+        * @return the interface of the this message or null
+        */
+        public InterfaceDefinition getInterfaceDefinition(){
+            return iface;
+        }
 	/**
 	 * Returns <code>true</code> if this message has a generic identifier, <code>false</code> otherwise.
 	 *
@@ -120,8 +128,8 @@ public class CommMessage implements Serializable
 	{
 		return new CommMessage( getNewMessageId(), operationName, resourcePath, Value.createDeepCopy( value ), null );
 	}
-        public static CommMessage createRequest(String operationName, String resourcePath,String destination, Value value) {
-                return new CommMessage(getNewMessageId(), operationName, resourcePath,destination,Value.createDeepCopy(value), null);
+        public static CommMessage createRequest(String operationName, String resourcePath,InterfaceDefinition iface, String destination, Value value) {
+                return new CommMessage(getNewMessageId(), operationName, resourcePath,iface, destination,Value.createDeepCopy(value), null);
         }
 	/**
 	 * Creates an empty (i.e. without data) response for the passed request.
@@ -172,17 +180,20 @@ public class CommMessage implements Serializable
 		this.resourcePath = resourcePath;
 		this.value = value;
 		this.fault = fault;
+                this.iface = null;
                 this.destination = null;
 	}
        /**
-+	 * Constructor
-+	 * @param id the identifier for this message
-+	 * @param operationName the operation name for this message
-+	 * @param resourcePath the resource path for this message
-+	 * @param value the message data to equip the message with
-+	 * @param fault the fault to equip the message with
-+	 */
-	public CommMessage( long id, String operationName, String resourcePath,String destination, Value value,  FaultException fault )
+	 * Constructor
+	 * @param id the identifier for this message
+	 * @param operationName the operation name for this message
+	 * @param resourcePath the resource path for this message
+         * @param iface  the interface for this message.
+         * @param destination the destination id for this message
+	 * @param value the message data to equip the message with
+	 * @param fault the fault to equip the message with
+	 */
+	public CommMessage( long id, String operationName, String resourcePath,InterfaceDefinition iface, String destination, Value value,  FaultException fault )
 	{
 		this.id = id;
 		this.operationName = operationName;
@@ -190,6 +201,7 @@ public class CommMessage implements Serializable
  		this.value = value;
                 this.destination = destination;
  		this.fault = fault;
+                this.iface = iface;
  	}
         
 	/**

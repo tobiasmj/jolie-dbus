@@ -83,8 +83,8 @@ public class NotificationProcess implements Process
 		try {
 			CommMessage message =
 				( outputExpression == null ) ?
-						CommMessage.createRequest( operationId, outputPort.getResourcePath(),outputPort.id(), Value.UNDEFINED_VALUE ) :
-						CommMessage.createRequest( operationId, outputPort.getResourcePath(),outputPort.id(), outputExpression.evaluate() );
+						CommMessage.createRequest( operationId, outputPort.getResourcePath(),outputPort.getInterface().interfaceForOperation(operationId),outputPort.id(), Value.UNDEFINED_VALUE ) :
+						CommMessage.createRequest( operationId, outputPort.getResourcePath(),outputPort.getInterface().interfaceForOperation(operationId),outputPort.id(), outputExpression.evaluate() );
 			if ( oneWayDescription != null ) {
 				oneWayDescription.requestType().check( message.value() );
 			}
@@ -97,7 +97,7 @@ public class NotificationProcess implements Process
 			if ( verbose ) {
 				log( "request " + message.id() + " sent" );
 			}
-			CommMessage response = null;
+			/*CommMessage response = null;
 			do {
 				response = channel.recvResponseFor( message );
 			} while( response == null );
@@ -113,7 +113,7 @@ public class NotificationProcess implements Process
 				} else {
 					Interpreter.getInstance().logSevere( "Notification process for operation " + operationId + " received an unexpected fault: " + response.fault().faultName() );
 				}
-			}
+			}*/
 		} catch( IOException e ) {
 			throw new FaultException( Constants.IO_EXCEPTION_FAULT_NAME, e );
 		} catch( URISyntaxException e ) {

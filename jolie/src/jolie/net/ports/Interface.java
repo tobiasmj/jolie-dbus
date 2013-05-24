@@ -26,8 +26,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import jolie.lang.parse.ast.InterfaceDefinition;
 import jolie.runtime.typing.OneWayTypeDescription;
 import jolie.runtime.typing.RequestResponseTypeDescription;
 import jolie.runtime.typing.Type;
@@ -183,7 +186,7 @@ public class Interface
 	public static final Interface UNDEFINED;
 	private static final Map< String, OneWayTypeDescription > UNDEFINED_ONE_WAY_MAP;
 	private static final Map< String, RequestResponseTypeDescription > UNDEFINED_REQUEST_RESPONSE_MAP;
-
+        
 	static {
 		UNDEFINED_ONE_WAY_MAP = new UndefinedOneWayOperationsMap();
 		UNDEFINED_REQUEST_RESPONSE_MAP = new UndefinedRequestResponseOperationsMap();
@@ -192,14 +195,38 @@ public class Interface
 
 	private final Map< String, RequestResponseTypeDescription > requestResponseOperations;
 	private final Map< String, OneWayTypeDescription > oneWayOperations;
-
-	public Interface(
+        private final Map< String, InterfaceDefinition> operationsMap;
+        
+        public Interface(
 		Map< String, OneWayTypeDescription > oneWayOperations,
 		Map< String, RequestResponseTypeDescription > requestResponseOperations
+        ) {
+                this.oneWayOperations = oneWayOperations;
+                this.requestResponseOperations = requestResponseOperations;
+                this.operationsMap = null;
+        }
+                
+	public Interface(
+		Map< String, OneWayTypeDescription > oneWayOperations,
+		Map< String, RequestResponseTypeDescription > requestResponseOperations,
+                List<InterfaceDefinition> interfaceNames
 	) {
-		this.oneWayOperations = oneWayOperations;
-		this.requestResponseOperations = requestResponseOperations;
-	}
+                this.oneWayOperations = oneWayOperations;
+                this.requestResponseOperations = requestResponseOperations;
+                Map<String, InterfaceDefinition> ifaceMap = new HashMap<String, InterfaceDefinition>();
+
+                for (InterfaceDefinition i : interfaceNames) {
+                    Iterator it = i.operationsMap().entrySet().iterator();
+                    while (it.hasNext()) {
+                        Map.Entry pairs = (Map.Entry) it.next();
+                        if (pairs.getKey().getClass() == String.class) {
+                            ifaceMap.put((String) pairs.getKey(), i);//                      
+                        }
+                        it.remove(); // avoids a ConcurrentModificationException
+                    }
+                }
+                this.operationsMap = ifaceMap;
+        }
 
 	public Map< String, OneWayTypeDescription > oneWayOperations()
 	{
@@ -222,4 +249,7 @@ public class Interface
 		return oneWayOperations.containsKey( operationName ) ||
 			requestResponseOperations.containsKey( operationName );
 	}
+        public InterfaceDefinition interfaceForOperation(String operationName) {
+                return operationsMap.get(operationName);
+        }
 }
