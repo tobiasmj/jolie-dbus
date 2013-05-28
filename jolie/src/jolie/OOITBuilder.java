@@ -479,7 +479,8 @@ public class OOITBuilder implements OLVisitor
 	{
 		currentPortInterface = new Interface(
 			new HashMap< String, OneWayTypeDescription >(),
-			new HashMap< String, RequestResponseTypeDescription >()
+			new HashMap< String, RequestResponseTypeDescription >(),
+                        n.getInterfaceList()
 		);
 		for( OperationDeclaration op : n.operations() ) {
 			op.accept( this );

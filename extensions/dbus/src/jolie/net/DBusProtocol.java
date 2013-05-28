@@ -22,30 +22,27 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
 import jolie.Interpreter;
 import jolie.lang.parse.ast.types.UInt32;
 import jolie.lang.parse.ast.types.UInt16;
 import jolie.lang.parse.ast.types.UInt64;
+import jolie.lang.parse.ast.InterfaceDefinition;
 import jolie.net.protocols.ConcurrentCommProtocol;
 import jolie.runtime.Value;
 import jolie.runtime.ValueVector;
 import jolie.runtime.VariablePath;
-//import org.freedesktop.dbus.DBusSignal;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.freedesktop.dbus.exceptions.MessageProtocolVersionException;
 import jolie.runtime.typing.JolieDBusUtils;
-/*import org.freedesktop.dbus.Message;
-import org.freedesktop.dbus.MethodCall;
-import org.freedesktop.dbus.MethodReturn;*/
-
 import org.freedesktop.dbus.Transport;
 import org.freedesktop.dbus.Variant;
 import jolie.net.dbus.Error;
@@ -54,12 +51,32 @@ import jolie.net.dbus.MethodCall;
 import jolie.net.dbus.MethodReturn;
 import jolie.net.dbus.DBusSignal;
 import jolie.net.ports.OutputPort;
+import jolie.net.ports.Interface;
 import jolie.runtime.InputOperation;
 import jolie.runtime.InvalidIdException;
-import jolie.runtime.RequestResponseOperation;
 import jolie.runtime.typing.OneWayTypeDescription;
 import jolie.runtime.typing.RequestResponseTypeDescription;
 import jolie.runtime.typing.Type;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.OutputKeys;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.DocumentType;
+import java.io.StringWriter;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+import jolie.runtime.FaultException;
+
 
 public class DBusProtocol extends ConcurrentCommProtocol {
     private HashMap<Long,MethodCall> _inMethodCalls = new HashMap<Long, MethodCall>(); 
@@ -75,6 +92,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
     private final boolean _debug;
     private boolean _messageBus;
     private boolean _authenticated;
+    private boolean _introspect;
     private byte[] _messageBody;
     private ArrayList<String> _rules;
     @Override
@@ -88,7 +106,9 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         _debug = checkBooleanParameter("debug");
         _interperter = Interpreter.getInstance();
         _nameRequestFlags = getUInt32Parameter("nrFlags");
-
+       
+        _introspect = checkBooleanParameter("introspect",true);
+        
     }
    
     private Message readMessage(InputStream in)
@@ -165,7 +185,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         Object[] bodyObjects;
         //Value bodyObjectsValue;
         String sig = (String) dbusHeaders.get(new Byte(Message.HeaderField.SIGNATURE));
-        if(sig != null && sig != ""){
+        if(sig != null && !sig.equals("")){
             try {
                 bodyObjects = JolieDBusUtils.extract(sig, _messageBody, endian, new int[]{0, 0});
             } catch (DBusException e) {
@@ -207,6 +227,9 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 // get the outgoing methodCall.
                 mc = _outMethodCalls.get(serial.longValue());
                 try {
+                    if(bodyObjects == null){
+                        bodyObjects = new Object[0];
+                    }
                     msg = new MethodReturn(mc,endian, sig, bodyObjects);
                 } catch(DBusException de) {
                     _interperter.logSevere(de);
@@ -250,20 +273,13 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         Message msg = readMessage(istream);
         CommMessage commMessage = null;
         if(msg instanceof MethodCall){
-            if (channel().parentPort().getInterface().containsOperation(msg.getName())) {
+            if (_inputport && channel().parentPort().getInterface().containsOperation(msg.getName())) {
                 try {
                     InputOperation operation = _interperter.getInputOperation(msg.getName());
                     Type requestType = operation.requestType();
-                    Value bodyObjectsValue = null;
-                    if (msg.getSig() != null && msg.getSig() != "") {
+                    Value bodyObjectsValue = Value.UNDEFINED_VALUE;
+                    if (msg.getSig() != null && !msg.getSig().equals("")) {
                         bodyObjectsValue = JolieDBusUtils.extract(msg.getSig(), _messageBody, msg.getEndian(), new int[]{0, 0}, requestType);
-                    }
-                    if (msg.getName().equals("Introspect")) {
-                        if (!_inputport) {
-                            /*for (OutputPort port : _interperter.outputPorts()) {
-                             if(port.getInterface().)
-                             } */
-                        }
                     }
                     commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), bodyObjectsValue);
                     _inMethodCalls.put(commMessage.id(), (MethodCall) msg);
@@ -274,8 +290,153 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                     _interperter.logInfo("Recieved D-Bus method call for unsuported method " + iie);
                 }
             } else {
-                 _interperter.logInfo("Recieved D-Bus method call for unsuported method " + msg.getName());
-                 commMessage = CommMessage.createRequest("", "/", Value.UNDEFINED_VALUE);
+                String output;
+                // if the method and interface matches introspect then create automatic introspection information.
+                if (_introspect && msg.getName().equals("Introspect") && msg.getInterface().equals("org.freedesktop.DBus.Introspectable")) {
+                    try {
+                        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+                        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+                        
+                        DOMImplementation domImpl = docBuilder.getDOMImplementation();
+                        DocumentType doctype = domImpl.createDocumentType("node",
+                        "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN",
+                        "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd");
+                        Document doc = docBuilder.newDocument();
+                        
+                        doc.appendChild(doctype);       
+                        // root elements
+                        Element rootElement = doc.createElement("node");
+                        doc.appendChild(rootElement);
+                        if (!_inputport) {
+                            TreeMap<String, TreeMap<String,OneWayTypeDescription>> interfaces = new TreeMap<String,TreeMap<String,OneWayTypeDescription>>();
+                            TreeMap<String,OneWayTypeDescription> ifaceMap;
+                            // get the interface of the outputport.
+                            Interface iface = channel().parentOutputPort().getInterface();
+                            Map<String, OneWayTypeDescription> oneway = iface.oneWayOperations();
+                            Iterator itr = oneway.entrySet().iterator();
+                            while (itr.hasNext()) {
+                                Map.Entry<String, OneWayTypeDescription> pair = (Map.Entry<String, OneWayTypeDescription>) itr.next();
+                                InterfaceDefinition def = iface.interfaceForOperation(pair.getKey());
+                                String ifaceName = def.name();
+                                ifaceMap = interfaces.get(ifaceName);
+                                if(ifaceMap != null){
+                                    if(ifaceMap.get(pair.getKey()) == null){
+                                      ifaceMap.put(pair.getKey(), pair.getValue());  
+                                    }                                     
+                                } else {
+                                    TreeMap<String,OneWayTypeDescription> newInterface = new TreeMap<String, OneWayTypeDescription>();
+                                    newInterface.put(pair.getKey(), pair.getValue());
+                                    interfaces.put(ifaceName, newInterface);
+                                }
+                            }
+                            for(Map.Entry<String,TreeMap<String,OneWayTypeDescription>> set : interfaces.entrySet()){
+                                String interfaceName = set.getKey();
+                                Element interfaceElement = doc.createElement("interface");
+                                interfaceElement.setAttribute("name", interfaceName);
+                                rootElement.appendChild(interfaceElement);
+                                for(Map.Entry<String,OneWayTypeDescription> setItem : set.getValue().entrySet()){
+                                    String signalName = setItem.getKey();
+                                    Element signalElement = doc.createElement("signal");
+                                    signalElement.setAttribute("name", signalName);
+                                    Element argumentOut = doc.createElement("arg");
+                                    try {
+                                        argumentOut.setAttribute("type", getDBusSignature(setItem.getValue().requestType()));
+                                    } catch (DBusException dbe){
+                                        _interperter.logSevere(dbe);
+                                    }
+                                    signalElement.appendChild(argumentOut);
+                                    interfaceElement.appendChild(signalElement);
+                                }
+                            }
+                        } else {
+                            //inputport
+                            TreeMap<String, TreeMap<String,RequestResponseTypeDescription>> interfaces = new TreeMap<String,TreeMap<String,RequestResponseTypeDescription>>();
+                            TreeMap<String,RequestResponseTypeDescription> ifaceMap;
+                            Interface iface = channel().parentInputPort().getInterface();
+                            Map<String, RequestResponseTypeDescription> rrDesc = iface.requestResponseOperations();
+                            Iterator itr = rrDesc.entrySet().iterator();
+                            while(itr.hasNext()){
+                                Map.Entry<String,RequestResponseTypeDescription> pair = (Map.Entry<String,RequestResponseTypeDescription>) itr.next();
+                                InterfaceDefinition def = iface.interfaceForOperation(pair.getKey());
+                                String ifaceName = def.name();
+                                ifaceMap = interfaces.get(ifaceName);
+                                if(ifaceMap != null){
+                                    if(ifaceMap.get(pair.getKey()) == null){
+                                        ifaceMap.put(pair.getKey(),pair.getValue());
+                                    }
+                                } else {
+                                    TreeMap<String,RequestResponseTypeDescription> newInterface = new TreeMap<String, RequestResponseTypeDescription>();
+                                    newInterface.put(pair.getKey(), pair.getValue());
+                                    interfaces.put(ifaceName, newInterface);
+                                }
+                            }
+                            //create xml 
+                            for(Map.Entry<String,TreeMap<String,RequestResponseTypeDescription>> set : interfaces.entrySet()){
+                                String interfaceName = set.getKey();
+                                Element interfaceElement = doc.createElement("interface");
+                                interfaceElement.setAttribute("name", interfaceName);
+                                rootElement.appendChild(interfaceElement);
+                                for(Map.Entry<String,RequestResponseTypeDescription> setItem : set.getValue().entrySet()){
+                                    String methodName = setItem.getKey();
+                                    Element methodElement = doc.createElement("method");
+                                    methodElement.setAttribute("name", methodName);
+                                    Element argumentIn = doc.createElement("arg");
+                                    Element argumentOut = doc.createElement("arg");
+                                    try {
+                                        argumentIn.setAttribute("type", getDBusSignature(setItem.getValue().requestType()));
+                                        argumentIn.setAttribute("direction", "in");
+                                        argumentOut.setAttribute("type", getDBusSignature(setItem.getValue().responseType()));
+                                        argumentOut.setAttribute("direction", "out");
+                                    } catch (DBusException dbe){
+                                        _interperter.logSevere(dbe);
+                                    }
+                                    methodElement.appendChild(argumentIn);
+                                    methodElement.appendChild(argumentOut);
+                                    interfaceElement.appendChild(methodElement);
+                                }
+                                rootElement.appendChild(interfaceElement);
+                            }
+                        }
+                        try{
+                            TransformerFactory tf = TransformerFactory.newInstance();
+                            Transformer transformer = tf.newTransformer();
+                            transformer.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN");
+                            transformer.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM,"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd");
+                            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+                            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+                            StringWriter writer = new StringWriter();
+                            transformer.transform(new DOMSource(doc), new StreamResult(writer));
+                            output = writer.getBuffer().toString();
+                            
+                            Value returnVal = Value.create(output);
+                            CommMessage requestMessage = CommMessage.createRequest(msg.getName(), "/", null, "", Value.UNDEFINED_VALUE);
+                            _inMethodCalls.put(requestMessage.id(), (MethodCall) msg);
+                            _inCommMessage.put(requestMessage.id(), requestMessage);
+                            
+                            CommMessage returnMessage = CommMessage.createResponse(requestMessage, returnVal);
+                            send(ostream, returnMessage, istream);
+                            channel().disposeForInput();
+                            commMessage = null;
+                        } catch(TransformerException te){
+
+                            _interperter.logSevere(te);
+                        }
+                    } catch (ParserConfigurationException pce) {
+                        _interperter.logSevere(pce);
+                    }
+                }
+                if (!(_introspect && msg.getName().equals("Introspect") && msg.getInterface().equals("org.freedesktop.DBus.Introspectable"))) {
+                    _interperter.logInfo("Recieved D-Bus method call for unsuported method " + msg.getName());
+                        Value bodyObjectsValue = Value.UNDEFINED_VALUE;
+                        commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), bodyObjectsValue);
+                        _inMethodCalls.put(commMessage.id(), (MethodCall) msg);
+                        _inCommMessage.put(commMessage.id(), commMessage);
+                        //send(ostream, CommMessage.createFaultResponse(commMessage, new FaultException( new FaultException( "IOException", "Invalid operation: " + commMessage.operationName() ))), istream);
+                        //commMessage = CommMessage.createRequest("", "/", Value.UNDEFINED_VALUE);
+
+                }                    
+
             }
         } else if(msg instanceof MethodReturn){
             // get the methodCall this is a Return for, and remove it from the outgoing method calls.
@@ -328,11 +489,28 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                  commMessage = CommMessage.createRequest("", "/", Value.UNDEFINED_VALUE);
             }
         } else if(msg instanceof Error){
-            _interperter.logSevere(((Error)msg).getName());
+            MethodCall mc = _outMethodCalls.remove(msg.getReplySerial());
+            CommMessage comm = _outSerialMap.remove(msg.getReplySerial());
+            if(comm != null){
+                try {
+                    commMessage = CommMessage.createFaultResponse(comm, new FaultException(msg.getName(), (String)msg.getParameters()[0]));
+                } catch (DBusException dbe){
+                    _interperter.logSevere(dbe);
+                }
+            } else {
+                // probably disapering service consumer that we have sent a reply/error to
+                if(msg.getHeader(Message.HeaderField.ERROR_NAME).equals("org.freedesktop.DBus.Error.ServiceUnknown")){
+                    try {
+                       _interperter.logInfo("Service disapeared : " + msg.getParameters()[0].toString());
+                       channel().disposeForInput();
+                    } catch (DBusException dbe){
+                        _interperter.logSevere(dbe);
+                    }
+                }
+            }
         }
         return commMessage;
     }
-
    @Override
     public void send(OutputStream ostream, CommMessage message, InputStream istream)
             throws IOException {
@@ -345,17 +523,15 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         CommMessage jmc = _inCommMessage.remove(message.id());
         if(jmc != null) {
             // this is a MethodReturn. Get the original MethodCall
-            _inMap.get(jmc.id());
             MethodCall mc = _inMethodCalls.remove(jmc.id());
             
             
             //check to se if reply contains a fault
             if(message.isFault()){
-                ArrayList faultmsg = new ArrayList();
-                faultmsg.add(message.fault().getMessage());
+                sig = getDBusSignature(message.fault().value());
+                objects = getObjectArray(message.fault().value());
                 try{
-                    msg = new Error(mc.getSource(), message.fault().faultName(), mc.getSerial(), "s", faultmsg.toArray());
-            
+                    msg = new Error(mc.getSource(),this.channel().parentInputPort().name() + ".Error",_inMap.remove(mc.getSerial()), sig, objects);
                 } catch(DBusException de) {
                     _interperter.logSevere(de);
                 }
@@ -410,8 +586,11 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 }
                 oos.write(buf);
             }
+            if (message.isFault()){
+                _interperter.logInfo("Send fault  to : " + msg.getDestination() +" with name :  "+  msg.getName() + " is error:" + message.isFault());
+            }
         }
-    }
+   }
     @Override 
     public void setup(InputStream istream, OutputStream ostream) throws IOException {
         if(_inputport){
@@ -496,6 +675,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                             _interperter.logSevere(de);
                         }
                         _interperter.logInfo("Recieved methodReturn" + "\n signature : " + sig);
+                        
                         run = false;
                     } else if(rply instanceof DBusSignal) {
                         // there might be a name aquired signal
@@ -553,7 +733,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
     }
     private void authenticate(InputStream istream, OutputStream ostream) throws IOException {
         if (!_authenticated) {
-            
                 if (!_messageBus && _inputport) {
                     _authenticated = dBusAuth(ostream, istream, true);
                 } else {
@@ -561,21 +740,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                      (setup method was not executed) */
                     _authenticated = dBusAuth(ostream, istream, false);
                 }
-                //configurationPath().getValue().getNewChild("authenticated").setValue(_authenticated);
-
-            /*} else {
-                _authenticated = checkBooleanParameter("authenticated");
-                if (!_authenticated) {
-                    if (!_messageBus && _inputport) {
-                        _authenticated = dBusAuth(ostream, istream, true);
-                    } else {
-                        _authenticated = dBusAuth(ostream, istream, false);
-                    }
-                    configurationPath().getValue().getFirstChild("authenticated").setValue(_authenticated);
-                } else {
-                    Interpreter.getInstance().logInfo("Already Authenticated : true");
-                }
-            }*/
         }
     }
     private boolean dBusAuth(OutputStream ostream, InputStream istream, boolean server) throws IOException {
@@ -659,6 +823,104 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         }
         return list.toArray();
     }
+    private Iterator getSubTypesIterator(Type t) throws DBusException {
+        Set<Map.Entry<String,Type>> subTypes;
+        List<Map.Entry<String,Type>> subTypesSorted = new LinkedList<Map.Entry<String,Type>>();
+
+        java.lang.reflect.Method subTypesMethod;
+        try{
+            subTypesMethod = Type.class.getDeclaredMethod("subTypeSet");
+            subTypesMethod.setAccessible(true);
+            subTypes = (Set<Map.Entry<String,Type>>)subTypesMethod.invoke(t);
+            
+            subTypesSorted.addAll(subTypes);
+            Collections.sort(subTypesSorted, new Comparator<Map.Entry<String,Type>>(){
+                @Override
+                public int compare(Map.Entry<String,Type> o1, Map.Entry<String,Type> o2) {
+                    return o1.getKey().compareTo(o2.getKey());
+                }
+            });
+            
+        } catch(NoSuchMethodException nme){
+            throw new DBusException(nme.getMessage());
+        } catch (IllegalAccessException iae){
+            throw new DBusException(iae.getMessage());
+        } catch (InvocationTargetException ite){
+            throw new DBusException(ite.getMessage());
+        } 
+        
+        if(!subTypesSorted.isEmpty()){
+            return subTypesSorted.iterator();
+        } else {
+            return null;
+        }
+    }
+    
+    private jolie.lang.NativeType getNativeType(Type t) throws DBusException{
+        java.lang.reflect.Method nativeTypeMethod;
+        jolie.lang.NativeType nativeType;
+        try{
+            nativeTypeMethod = Type.class.getDeclaredMethod("nativeType");
+            nativeTypeMethod.setAccessible(true);
+            nativeType = (jolie.lang.NativeType)nativeTypeMethod.invoke(t);
+        } catch(NoSuchMethodException nme){
+            throw new DBusException(nme.getMessage());
+        } catch (IllegalAccessException iae){
+            throw new DBusException(iae.getMessage());
+        } catch (InvocationTargetException ite){
+            throw new DBusException(ite.getMessage());
+        } 
+        
+        return nativeType;
+    }
+    private jolie.util.Range getRange(Type t) throws DBusException{
+        java.lang.reflect.Method rangeMethod;
+        jolie.util.Range range;
+        try{
+            rangeMethod = Type.class.getDeclaredMethod("cardinality");
+            rangeMethod.setAccessible(true);
+            range = (jolie.util.Range)rangeMethod.invoke(t);
+        } catch(NoSuchMethodException nme){
+            throw new DBusException(nme.getMessage());
+        } catch (IllegalAccessException iae){
+            throw new DBusException(iae.getMessage());
+        } catch (InvocationTargetException ite){
+            throw new DBusException(ite.getMessage());
+        } 
+        
+        return range;
+    }
+    
+    private String getDBusSignature(Type t) throws DBusException{
+        String sig = "";
+        Iterator subItr = getSubTypesIterator(t);
+        if(subItr == null){
+            sig += getNativeTypeSignature(getNativeType(t));
+        } else {
+            while (subItr.hasNext()){
+                Map.Entry<String,Type>subType = (Map.Entry<String,Type>)subItr.next(); 
+                Iterator childrenIterator = getSubTypesIterator(subType.getValue());
+                if(childrenIterator != null){
+                    sig += "(";
+                    sig += getDBusSignature(subType.getValue());
+                    sig += ")";
+                } else {
+                    // no children
+                    //check range for array type?
+                    jolie.util.Range typeRange = getRange(subType.getValue());
+                    if(typeRange.min() < typeRange.max()){
+                        sig += "a";
+                        sig += getDBusSignature(subType.getValue());
+                    } else {
+                        sig += getDBusSignature(subType.getValue());
+                    }
+                }
+            }
+        }
+        return sig;
+    }
+    
+    
     /**
      * Gets the dbus signature of a value from Jolie
      *
@@ -670,9 +932,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         Map<String, ValueVector> map = new TreeMap(val.children());
         if (!map.isEmpty()) {
             for (Map.Entry<String, ValueVector> entry : map.entrySet()) {
-            //Collection<ValueVector> values = map.values();
-            //for (ValueVector vv : values) {
-                //array type if more then 1?
             ValueVector vv = entry.getValue();
                 if (vv.size() > 1) {
                     Value internalVal = vv.first();
@@ -730,6 +989,35 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         }
         return sig;
     }
+    
+    private String getNativeTypeSignature(jolie.lang.NativeType obj) {
+        String sig = "";
+        if (obj != null) {
+            if (obj.id().equals("string")) {
+                sig += "s";
+            } else if (obj.id().equals("int")) {
+                sig += "i";
+            } else if (obj.id().equals("double")) {
+                sig += "d";
+            } else if (obj.id().equals("bool")) {
+                sig += "b";
+            } else if (obj.id().equals("long")) {
+                sig += "x";
+            } else if (obj.id().equals("uint32")) {
+                sig +="u";
+            } else if (obj.id().equals("uint16")) {
+                sig +="q";
+            } else if (obj.id().equals("int16")) {
+                sig +="n";
+            } else if (obj.id().equals("uint64")) {
+                sig +="t";
+            } else if (obj.id().equals("byte")) {
+                sig +="y";
+            }
+        }
+        return sig;
+    }
+    
     /**
      * Create a Jolie value object with data from D-Bus.
      *
@@ -777,4 +1065,5 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             return null;
         }
     }
+    
 }
