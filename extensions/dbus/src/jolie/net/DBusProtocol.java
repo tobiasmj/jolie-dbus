@@ -99,7 +99,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
     public String name() {
         return "dbus";
     }
-
     public DBusProtocol(VariablePath configurationPath,boolean inputport) {
         super(configurationPath);
         _inputport = inputport;
@@ -110,9 +109,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         _introspect = checkBooleanParameter("introspect",true);
         
     }
-   
-    private Message readMessage(InputStream in)
-            throws IOException {
+    private Message readMessage(InputStream in) throws IOException {
         //read the 12 fixed bytes of the message header
         byte[] buf = new byte[12];
         byte[] tbuf;
@@ -855,7 +852,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             return null;
         }
     }
-    
     private jolie.lang.NativeType getNativeType(Type t) throws DBusException{
         java.lang.reflect.Method nativeTypeMethod;
         jolie.lang.NativeType nativeType;
@@ -890,7 +886,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         
         return range;
     }
-    
     private String getDBusSignature(Type t) throws DBusException{
         String sig = "";
         Iterator subItr = getSubTypesIterator(t);
@@ -919,8 +914,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         }
         return sig;
     }
-    
-    
     /**
      * Gets the dbus signature of a value from Jolie
      *
@@ -938,9 +931,17 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                     if (!val.children().isEmpty()) {
                         sig += "a";
                         if (internalVal.hasChildren() && internalVal.children().size() > 1) {
-                            sig += "(";
-                            sig += getDBusSignature(internalVal);
-                            sig += ")";
+                            // maybe a dictionary value.
+                            if(internalVal.hasChildren() && internalVal.children().size() == 2 &&
+                               internalVal.children().get("key") != null && internalVal.children().get("value") != null){
+                                sig += "{";
+                                sig += getDBusSignature(internalVal);
+                                sig += "}";
+                            } else {
+                                sig += "(";
+                                sig += getDBusSignature(internalVal);
+                                sig += ")";
+                            }
                         } else {
                             sig += getDBusSignature(internalVal);
                         }
@@ -949,9 +950,17 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                         sig += getDBusValueObjectSignature(internalVal.valueObject());
                     }
                 } else if (vv.first().hasChildren()) {
-                    sig += "(";
-                    sig += getDBusSignature(vv.first());
-                    sig += ")";
+                    
+                    if(vv.first().children().size() == 2 && vv.first().children().get("key") != null
+                       && vv.first().children().get("value") != null){
+                        sig += "{";
+                        sig += getDBusSignature(vv.first());
+                        sig += "}";
+                    } else {
+                        sig += "(";
+                        sig += getDBusSignature(vv.first());
+                        sig += ")";
+                    }
                 } else {
                     sig += getDBusValueObjectSignature(vv.first().valueObject());
                 }
@@ -988,8 +997,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
 
         }
         return sig;
-    }
-    
+    }    
     private String getNativeTypeSignature(jolie.lang.NativeType obj) {
         String sig = "";
         if (obj != null) {
@@ -1016,8 +1024,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             }
         }
         return sig;
-    }
-    
+    }   
     /**
      * Create a Jolie value object with data from D-Bus.
      *
@@ -1065,5 +1072,4 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             return null;
         }
     }
-    
 }

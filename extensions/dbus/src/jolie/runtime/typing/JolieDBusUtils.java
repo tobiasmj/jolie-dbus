@@ -215,6 +215,7 @@ public class JolieDBusUtils {
                             ofs[0] = ofssave;
                             entries.add((Object[]) extractone(sigb, buf, endian, ofs, true));
                         }
+                        rv = entries;
                         //rv = new DBusMap<Object, Object>(entries.toArray(new Object[0][]));
                         break;
                     default:
@@ -518,9 +519,23 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                         int ofssave = ofs[0];
                         long end = ofs[1] + size;
                         
+                        Set<Map.Entry<String, jolie.runtime.typing.Type>> subTypeSet;
+                        
+                        try{
+                            Method typeImplMethod = Type.class.getDeclaredMethod("subTypeSet");
+                            typeImplMethod.setAccessible(true);
+                            subTypeSet = (Set<Map.Entry<String, Type>>)typeImplMethod.invoke(requestType);
+                        } catch(NoSuchMethodException nsme){
+                            throw new DBusException(nsme.toString());
+                        } catch(IllegalAccessException iae) {
+                            throw new DBusException(iae.toString());
+                        } catch(IllegalArgumentException ia){
+                            throw new DBusException(ia.toString());
+                        } catch(InvocationTargetException ite){ throw new DBusException(ite.toString());}
+                        
                         subtypes = new LinkedList<Map.Entry<String, jolie.runtime.typing.Type>>();
-                        if(requestType != null && ((TypeImpl)requestType).subTypeSet() != null){
-                            subtypes.addAll(((TypeImpl)requestType).subTypeSet());
+                        if(requestType != null && subTypeSet != null){
+                            subtypes.addAll(subTypeSet);
                             //sort the list.
                             Collections.sort(subtypes, new Comparator<Map.Entry<String,jolie.runtime.typing.Type>>(){
                                 @Override
@@ -560,7 +575,6 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                         ofssave = ofs[0];
                         end = ofs[1] + size;
 
-                        Set<Map.Entry<String, jolie.runtime.typing.Type>> subTypeSet;
                         subtypes = new LinkedList<Map.Entry<String, Type>>();
                         
                         try{
@@ -677,15 +691,29 @@ public static Value extract(String sig, byte[] buf, byte endian, int[] ofs,Type 
                     Debug.print(Debug.VERBOSE, "Extracting Dict Entry (" + Hexdump.toAscii(sigb, ofs[0], sigb.length - ofs[0]) + ") from: " + Hexdump.toHex(buf, ofs[1], buf.length - ofs[1]));
                 }
                 
-                /*if (requestType instanceof TypeLink){
-                    TypeLink type = (TypeLink)requestType;
-                    requestType = (TypeImpl)type.linkedType();
-                } else if(requestType instanceof TypeImpl){
-                    requestType = (TypeImpl)requestType;
-                }*/
-                subtypes = new LinkedList<Map.Entry<String, jolie.runtime.typing.Type>>();
-                if(requestType != null && ((TypeImpl)requestType).subTypeSet() != null){
-                    subtypes.addAll(((TypeImpl)requestType).subTypeSet());
+                subtypes = new LinkedList<Map.Entry<String, Type>>();
+                try {
+                    Method typeImplMethod = Type.class.getDeclaredMethod("subTypeSet");
+                    typeImplMethod.setAccessible(true);
+                    subTypeSet = (Set<Map.Entry<String, Type>>) typeImplMethod.invoke(requestType);
+                } catch (NoSuchMethodException nsme) {
+                    throw new DBusException(nsme.toString());
+                } catch (IllegalAccessException iae) {
+                    throw new DBusException(iae.toString());
+                } catch (IllegalArgumentException ia) {
+                    throw new DBusException(ia.toString());
+                } catch (InvocationTargetException ite) {
+                    throw new DBusException(ite.toString());
+                }
+                if (requestType != null && subTypeSet != null) {
+                    subtypes.addAll(subTypeSet);
+                    //sort the list.
+                    Collections.sort(subtypes, new Comparator<Map.Entry<String, jolie.runtime.typing.Type>>() {
+                        @Override
+                        public int compare(Map.Entry<String, jolie.runtime.typing.Type> o1, Map.Entry<String, jolie.runtime.typing.Type> o2) {
+                            return o1.getKey().compareTo(o2.getKey());
+                        }
+                    });
                 }
                 if(subtypes.size() == 2){
                     ofs[0]++;
