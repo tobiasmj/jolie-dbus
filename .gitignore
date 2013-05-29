@@ -237,7 +237,8 @@ extensions/localsocket/nbproject/genfiles.properties
 /tools/wsdl2jolie/build
 
 #/test/dbus
-/test/dbus
+/test/dbus.old
+/test/dbus/*.sh
 
 jolie/src/jolie/runtime/.svn/text-base/InputOperation.java.netbeans-base
 
