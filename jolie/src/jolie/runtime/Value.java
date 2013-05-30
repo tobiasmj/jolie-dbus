@@ -893,8 +893,9 @@ public abstract class Value implements Expression, Cloneable
         public final synchronized UInt16 uInt16ValueStrict()
                 throws TypeCastingException
         {
-                UInt16 r = new UInt16(0);
-                Object o = valueObject();
+            UInt16 r = new UInt16(0);
+            Object o = valueObject();
+            try {
                 if ( o == null) {
                     throw new TypeCastingException();
                 } else if ( o instanceof Byte ) {
@@ -916,13 +917,12 @@ public abstract class Value implements Expression, Cloneable
 		} else if ( o instanceof Boolean ) {
 			r = new UInt16(( ((Boolean) o).booleanValue() == true ) ? 1 : 0);
 		} else if ( o instanceof String ) {
-			try {
-				r = new UInt16(Integer.parseInt( ((String)o).trim() ));
-			} catch( NumberFormatException nfe ) {
-				throw new TypeCastingException();
-			}
+                    r = new UInt16(Integer.parseInt( ((String)o).trim() ));
 		} 
-		return r;
+            } catch( NumberFormatException nfe ) {
+                throw new TypeCastingException();
+            }
+            return r;
         }
         
         public Short int16Value()
@@ -979,40 +979,39 @@ public abstract class Value implements Expression, Cloneable
         }
         
         public final synchronized UInt32 uInt32ValueStrict()
-                throws TypeCastingException
-        {
-                UInt32 r = new UInt32(0);
-                Object o = valueObject();
-                if ( o == null) {
+            throws TypeCastingException {
+            UInt32 r = new UInt32(0);
+            Object o = valueObject();
+            try {
+                if (o == null) {
                     throw new TypeCastingException();
-                } else if ( o instanceof Byte ) {
-                        r = new UInt32(((Byte) o).intValue());
-		} else if ( o instanceof Short ) {
-                        r = new UInt32(((Short) o).intValue());
-		} else if ( o instanceof UInt16 ) {
-                        r = new UInt32(((UInt16) o).intValue());
-                } else if ( o instanceof Integer ) {
-			r = new UInt32(((Integer)o).intValue());
-		} else if ( o instanceof UInt32 ) {
-                        r = new UInt32(((UInt32) o).intValue());
-                } else if ( o instanceof Double ) {
-			r = new UInt32(((Double)o).intValue());
-                } else if ( o instanceof Long ) {
-			r = new UInt32(((Long)o).intValue());
-                } else if ( o instanceof UInt64 ) {
-			r = new UInt32(((UInt64)o).intValue());
-		} else if ( o instanceof Boolean ) {
-			r = new UInt32(( ((Boolean) o).booleanValue() == true ) ? 1 : 0);
-		} else if ( o instanceof String ) {
-			try {
-				r = new UInt32(Integer.parseInt( ((String)o).trim() ));
-			} catch( NumberFormatException nfe ) {
-				throw new TypeCastingException();
-			}
-		} 
-		return r;
-
-        
+                } else if (o instanceof Byte) {
+                    r = new UInt32(((Byte) o).intValue());
+                } else if (o instanceof Short) {
+                    r = new UInt32(((Short) o).intValue());
+                } else if (o instanceof UInt16) {
+                    r = new UInt32(((UInt16) o).intValue());
+                } else if (o instanceof Integer) {
+                    r = new UInt32(((Integer) o).intValue());
+                } else if (o instanceof UInt32) {
+                    r = new UInt32(((UInt32) o).intValue());
+                } else if (o instanceof Double) {
+                    r = new UInt32(((Double) o).intValue());
+                } else if (o instanceof Long) {
+                    r = new UInt32(((Long) o).intValue());
+                } else if (o instanceof UInt64) {
+                    r = new UInt32(((UInt64) o).intValue());
+                } else if (o instanceof Boolean) {
+                    r = new UInt32((((Boolean) o).booleanValue() == true) ? 1 : 0);
+                } else if (o instanceof String) {
+                    r = new UInt32(Integer.parseInt(((String) o).trim()));
+                }
+            } catch (NumberFormatException nfe) {
+                // if the value is cast to a unsigned type and contains a negative value 
+                // a NumberFormatException is thrown  
+                throw new TypeCastingException();
+            }
+            return r;
         }
         
 	public int intValue()
@@ -1100,9 +1099,10 @@ public abstract class Value implements Expression, Cloneable
 	public final synchronized UInt64 uInt64ValueStrict()
 		throws TypeCastingException
 	{
-		UInt64 r = new UInt64(0);
-		Object o = valueObject();
-		if ( o == null ) {
+            UInt64 r = new UInt64(0);
+            Object o = valueObject();
+            try {
+                if ( o == null ) {
 			throw new TypeCastingException();
 		} else if ( o instanceof UInt64 ) {
 			r = (UInt64)o;
@@ -1123,12 +1123,11 @@ public abstract class Value implements Expression, Cloneable
 		} else if ( o instanceof Double ) {
 			r = new UInt64(((Double)o).longValue());
 		} else if ( o instanceof String ) {
-			try {
-				r = new UInt64(Long.parseLong( ((String)o).trim() ));
-			} catch( NumberFormatException nfe ) {
-				throw new TypeCastingException();
-			}
-		}
+                        r = new UInt64(Long.parseLong( ((String)o).trim() ));
+                }
+            } catch( NumberFormatException nfe ) {
+                throw new TypeCastingException();
+            }                        
 		return r;
 	}
         
