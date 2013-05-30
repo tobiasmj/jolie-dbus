@@ -23,7 +23,7 @@ include "console.iol"
 include "runtime.iol"
 
 constants {
-	Location_Presenter = "socket://localhost:9001",
+	Location_Presenter = "socket://localhost:9002",
 	Debug = 1,
 	NetworkCharset = "ISO8859-1" // Useful default for interacting with J2ME applications
 }
@@ -47,7 +47,7 @@ define initViewer
 	} else {
 		embedInfo.filepath = "viewers/" + args[0] + ".ol";
 		embedInfo.type = "Jolie";
-		if ( args[0] != "kpdf" && args[0] != "okular" && args[0] != "previewer" ) {
+		if ( args[0] != "kpdf" && args[0] != "okular" && args[0] != "previewer" && args[0] != "okular-dbus") {
 			throw( CouldNotStartFault, "Unsupported viewer: " + args[0] )
 		};
 
