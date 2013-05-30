@@ -286,7 +286,7 @@ java -cp $JOLIE_HOME/jolie.jar:$JOLIE_HOME/lib/libjolie.jar:$JOLIE_HOME/tools/jo
 				<file file="${project.jolie-java}/dist/jolie-java.jar"/>
 				<file file="${project.metaservice-java}/dist/metaservice-java.jar"/>
 				<file file="${project.dbus}/dist/lib/hexdump-0.2.jar"/>
-				<file file="${project.dbus}/dist/lib/debug-enable-1.1.jar"/>
+				<file file="${project.dbus}/dist/lib/debug-disable-1.1.jar"/>
 				<file file="${project.dbus}/dist/lib/libdbus-java-2.7.jar"/>
 			</resources>
 		</copy>
