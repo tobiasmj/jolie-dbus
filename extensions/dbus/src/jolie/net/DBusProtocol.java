@@ -1,19 +1,23 @@
-/**
- * *************************************************************************
- * Copyright (C) by Tobias Mandrup Johansen * * This program is free software;
- * you can redistribute it and/or modify * it under the terms of the GNU Library
- * General Public License as * published by the Free Software Foundation; either
- * version 2 of the * License, or (at your option) any later version. * * This
- * program is distributed in the hope that it will be useful, * but WITHOUT ANY
- * WARRANTY; without even the implied warranty of * MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the * GNU General Public License for more
- * details. * * You should have received a copy of the GNU Library General
- * Public * License along with this program; if not, write to the * Free
- * Software Foundation, Inc., * 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA. * * For details about the authors of this software, see the
- * AUTHORS file. *
- **************************************************************************
- */
+/***************************************************************************
+ *   Copyright (C) by Tobias Mandrup Johansen                              *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU Library General Public License as       *
+ *   published by the Free Software Foundation; either version 2 of the    *
+ *   License, or (at your option) any later version.                       *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU Library General Public     *
+ *   License along with this program; if not, write to the                 *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *                                                                         *
+ *   For details about the authors of this software, see the AUTHORS file. *
+ ***************************************************************************/
 package jolie.net;
 
 import cx.ath.matthew.unix.USOutputStream;
@@ -22,69 +26,67 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.stream.StreamResult;
 import jolie.Interpreter;
 import jolie.lang.parse.ast.types.UInt32;
 import jolie.lang.parse.ast.types.UInt16;
 import jolie.lang.parse.ast.types.UInt64;
 import jolie.lang.parse.ast.InterfaceDefinition;
+import jolie.net.dbus.DBusSignal;
+import jolie.net.dbus.Error;
+import jolie.net.dbus.Message;
+import jolie.net.dbus.MethodCall;
+import jolie.net.dbus.MethodReturn;
+import jolie.net.ports.OutputPort;
+import jolie.net.ports.Interface;
 import jolie.net.protocols.ConcurrentCommProtocol;
+import jolie.runtime.FaultException;
+import jolie.runtime.InputOperation;
+import jolie.runtime.InvalidIdException;
+import jolie.runtime.typing.JolieDBusUtils;
+import jolie.runtime.typing.OneWayTypeDescription;
+import jolie.runtime.typing.RequestResponseTypeDescription;
+import jolie.runtime.typing.Type;
 import jolie.runtime.Value;
 import jolie.runtime.ValueVector;
 import jolie.runtime.VariablePath;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.freedesktop.dbus.exceptions.MessageProtocolVersionException;
-import jolie.runtime.typing.JolieDBusUtils;
 import org.freedesktop.dbus.Transport;
 import org.freedesktop.dbus.Variant;
-import jolie.net.dbus.Error;
-import jolie.net.dbus.Message;
-import jolie.net.dbus.MethodCall;
-import jolie.net.dbus.MethodReturn;
-import jolie.net.dbus.DBusSignal;
-import jolie.net.ports.OutputPort;
-import jolie.net.ports.Interface;
-import jolie.runtime.InputOperation;
-import jolie.runtime.InvalidIdException;
-import jolie.runtime.typing.OneWayTypeDescription;
-import jolie.runtime.typing.RequestResponseTypeDescription;
-import jolie.runtime.typing.Type;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.OutputKeys;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.DocumentType;
-import java.io.StringWriter;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
-import jolie.runtime.FaultException;
-
 
 public class DBusProtocol extends ConcurrentCommProtocol {
     private HashMap<Long,MethodCall> _inMethodCalls = new HashMap<Long, MethodCall>(); 
     private HashMap<Long,MethodCall> _outMethodCalls = new HashMap<Long,MethodCall>();
     private HashMap<Long,CommMessage> _inCommMessage = new HashMap<Long, CommMessage>();
     private HashMap<Long,CommMessage> _outSerialMap = new HashMap<Long,CommMessage>();
-    private HashMap<Long,Integer> _inMap = new HashMap<Long, Integer>();
-        
+    private HashMap<Long,Integer> _inMap = new HashMap<Long, Integer>();      
     static final byte ENDIAN = Message.Endian.BIG;
     private final boolean _inputport;
     private final UInt32 _nameRequestFlags;
@@ -104,10 +106,8 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         _inputport = inputport;
         _debug = checkBooleanParameter("debug");
         _interperter = Interpreter.getInstance();
-        _nameRequestFlags = getUInt32Parameter("nrFlags");
-       
+        _nameRequestFlags = getUInt32Parameter("nrFlags");      
         _introspect = checkBooleanParameter("introspect",true);
-        
     }
     private Message readMessage(InputStream in) throws IOException {
         //read the 12 fixed bytes of the message header
@@ -116,15 +116,13 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         _messageBody = null;
         HashMap<Byte, Object> dbusHeaders = new HashMap<Byte, Object>();
         in.read(buf);
-
         /* Parse the details from the header */
         byte endian = buf[0];
         byte messageType = buf[1];
         byte flags = buf[2];
         byte version = buf[3];
         int bodyLength = (int) Message.demarshallint(buf, 4, endian, 4);
-        int senderCookie = (int) Message.demarshallint(buf, 8, endian, 4);
-        
+        int senderCookie = (int) Message.demarshallint(buf, 8, endian, 4);        
         if(_debug){
             Interpreter i = Interpreter.getInstance();
             i.logInfo("Reading Message" +
@@ -135,23 +133,19 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                     "\n bodyLength : " + bodyLength +
                     "\n senderCookie : " + senderCookie);
         }
-
         // check protocol version.
         if (version > Message.PROTOCOL) {
             throw new MessageProtocolVersionException(MessageFormat.format("Protocol version {0} is unsupported", new Object[]{version}));
         }
-
         /* Read the length of the variable header */
         tbuf = new byte[4];
         in.read(tbuf);
-
         /* Parse the variable header length */
         int headerlen;
         headerlen = (int) Message.demarshallint(tbuf, 0, endian, 4);
         if (0 != headerlen % 8) {
             headerlen += 8 - (headerlen % 8);
         }
-
         /* Read the variable header */
         byte[] headers;
         headers = new byte[headerlen + 8];
@@ -160,7 +154,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         System.arraycopy(tbuf, 0, headers, 0, 4);
         //read headerlength bytes into header starting with offset of 8 bytes.
         in.read(headers, 8, headerlen);
-
         /* parse variable headers */
         Object[] headerObjects;
         try {
@@ -171,16 +164,13 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         } catch (DBusException e) {
             throw new IOException("Error parssing DBus variable headers : " + e.toString());
         }
-
         /* read body */
         if (null == _messageBody) {
             _messageBody = new byte[bodyLength];
         }
         in.read(_messageBody, 0, _messageBody.length);
-
         /*parse body*/
         Object[] bodyObjects;
-        //Value bodyObjectsValue;
         String sig = (String) dbusHeaders.get(new Byte(Message.HeaderField.SIGNATURE));
         if(sig != null && !sig.equals("")){
             try {
@@ -191,8 +181,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         } else {
             bodyObjects = null;
         }
-        /* create the comm message */
-
         String path = (String)dbusHeaders.get(Message.HeaderField.PATH);
         String iface = (String)dbusHeaders.get(Message.HeaderField.INTERFACE);
         String member = (String)dbusHeaders.get(Message.HeaderField.MEMBER); 
@@ -200,10 +188,8 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         UInt32 serial = (UInt32)dbusHeaders.get(Message.HeaderField.REPLY_SERIAL);
         String dest = (String)dbusHeaders.get(Message.HeaderField.DESTINATION);
         String source = (String)dbusHeaders.get(Message.HeaderField.SENDER);
-        
         Message msg = null;
-        MethodCall mc = null;
-        Long commId;
+        MethodCall mc;
         switch (messageType) {
             case Message.MessageType.METHOD_CALL:
                 if(_debug){
@@ -259,13 +245,10 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 }
                 break;
         }
-        
-
         return msg;
     }
    @Override
-    public CommMessage recv(InputStream istream, OutputStream ostream)
-            throws IOException {
+    public CommMessage recv(InputStream istream, OutputStream ostream) throws IOException {
         authenticate(istream,ostream);
         Message msg = readMessage(istream);
         CommMessage commMessage = null;
@@ -293,13 +276,11 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                     try {
                         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
                         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-                        
                         DOMImplementation domImpl = docBuilder.getDOMImplementation();
                         DocumentType doctype = domImpl.createDocumentType("node",
                         "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN",
                         "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd");
                         Document doc = docBuilder.newDocument();
-                        
                         doc.appendChild(doctype);       
                         // root elements
                         Element rootElement = doc.createElement("node");
@@ -405,19 +386,16 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                             StringWriter writer = new StringWriter();
                             transformer.transform(new DOMSource(doc), new StreamResult(writer));
                             output = writer.getBuffer().toString();
-                            
                             Value returnVal = Value.create(output);
                             CommMessage requestMessage = CommMessage.createRequest(msg.getName(), "/", null, "", Value.UNDEFINED_VALUE);
                             _inMethodCalls.put(requestMessage.id(), (MethodCall) msg);
                             _inCommMessage.put(requestMessage.id(), requestMessage);
-                            
                             CommMessage returnMessage = CommMessage.createResponse(requestMessage, returnVal);
                             send(ostream, returnMessage, istream);
                             channel().disposeForInput();
                             commMessage = null;
                         } catch(TransformerException te){
-
-                            _interperter.logSevere(te);
+                           _interperter.logSevere(te);
                         }
                     } catch (ParserConfigurationException pce) {
                         _interperter.logSevere(pce);
@@ -429,31 +407,25 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                         commMessage = CommMessage.createRequest(msg.getName(), msg.getPath(), bodyObjectsValue);
                         _inMethodCalls.put(commMessage.id(), (MethodCall) msg);
                         _inCommMessage.put(commMessage.id(), commMessage);
-                        //send(ostream, CommMessage.createFaultResponse(commMessage, new FaultException( new FaultException( "IOException", "Invalid operation: " + commMessage.operationName() ))), istream);
-                        //commMessage = CommMessage.createRequest("", "/", Value.UNDEFINED_VALUE);
-
                 }                    
-
             }
         } else if(msg instanceof MethodReturn){
             // get the methodCall this is a Return for, and remove it from the outgoing method calls.
             MethodCall mc = _outMethodCalls.remove(msg.getReplySerial());
             if(mc!= null && channel().parentPort().getInterface().containsOperation(mc.getName())) {
                 try {
-                    OutputPort out = _interperter.getOutputPort(mc.getDestination());
+                    OutputPort out = _interperter.getOutputPort(_outSerialMap.get(msg.getReplySerial()).getDestination());
                     RequestResponseTypeDescription rrTypeDescription = out.getInterface().requestResponseOperations().get(mc.getName());
                     Type responseType = rrTypeDescription.responseType();
                     Value bodyObjectsValue = Value.UNDEFINED_VALUE;
                     if(msg.getSig() != null && !msg.getSig().equals("")){
                         bodyObjectsValue = JolieDBusUtils.extract(msg.getSig(), _messageBody, msg.getEndian(), new int[]{0, 0},responseType);
                     }    
-                    
                     // get the calling commMessage.
                     CommMessage requestMessage = _outSerialMap.remove(Long.valueOf(mc.getSerial()));
                     if(requestMessage != null){
                         commMessage = CommMessage.createResponse(requestMessage, bodyObjectsValue);
                     }
-                
                 } catch (DBusException de){
                     _interperter.logSevere(de);
                 } catch (UnsupportedOperationException uoe){
@@ -509,20 +481,16 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         return commMessage;
     }
    @Override
-    public void send(OutputStream ostream, CommMessage message, InputStream istream)
-            throws IOException {
+    public void send(OutputStream ostream, CommMessage message, InputStream istream)throws IOException {
         authenticate(istream, ostream);
         DataOutputStream oos = new DataOutputStream(ostream);
         String sig = getDBusSignature(message.value());
         Object[] objects = getObjectArray(message.value());
         Message msg = null;
-        
         CommMessage jmc = _inCommMessage.remove(message.id());
         if(jmc != null) {
             // this is a MethodReturn. Get the original MethodCall
             MethodCall mc = _inMethodCalls.remove(jmc.id());
-            
-            
             //check to se if reply contains a fault
             if(message.isFault()){
                 sig = getDBusSignature(message.fault().value());
@@ -554,15 +522,19 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                 } catch (InvalidIdException iie) {
                     signal = false;
                 }
-                String resourcePath;
+                String resourcePath = message.resourcePath();
                 if(hasParameter("object_path")){
                     resourcePath = getStringParameter("object_path");
-                } else {
-                    resourcePath = message.resourcePath();
                 }
+   
+                String destination = message.getDestination();
+                if(hasParameter("destination")){
+                    destination = getStringParameter("destination");
+                }
+   
                 try {
                     if(!signal){
-                        msg = new MethodCall(message.getDestination(), resourcePath,
+                        msg = new MethodCall(destination, resourcePath,
                             null, message.operationName(),Message.Endian.BIG, (byte) 0, sig, objects);
                         _outMethodCalls.put(msg.getSerial(), (MethodCall)msg);
                         _outSerialMap.put(msg.getSerial(), message);
@@ -614,10 +586,10 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         if(_authenticated){
             DataInputStream dis = new DataInputStream(istream);
             CommMessage comm = CommMessage.createRequest("Hello","/",null,"org.freedesktop.DBus", Value.UNDEFINED_VALUE);
-            Message rply = null;
+            Message rply;
             send(ostream, comm, istream);
-            Object[] parameters = null;
-            String sig = null;
+            Object[] parameters;
+            String sig;
             Value valueObject = null;
             ostream.flush();
             //listen for reply
@@ -632,18 +604,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                     } catch (DBusException de){
                         _interperter.logSevere(de);
                     }
-                    _interperter.logInfo("Recieved methodReturn" + "\n Signature : " + sig);
                     run = false;
-                } else if(rply instanceof DBusSignal) {
-                    // there might be a name aquired signal
-                    _interperter.logInfo("Recieved signal with name : " + rply.getName());
-                    // continue reading untill methodReturn
-                } else if(rply instanceof Error) {
-                    _interperter.logInfo("Recieved Error with name : " + rply.getName());
-                    // continue reading untill methodReturn
-                } else if(rply instanceof MethodCall) {
-                    _interperter.logInfo("Recieved methodCall with name : " + rply.getName());
-                    // continue reading untill methodReturn
                 }
             }
             if(_messageBus && _inputport){
@@ -671,22 +632,9 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                         } catch (DBusException de){
                             _interperter.logSevere(de);
                         }
-                        _interperter.logInfo("Recieved methodReturn" + "\n signature : " + sig);
-                        
                         run = false;
-                    } else if(rply instanceof DBusSignal) {
-                        // there might be a name aquired signal
-                        _interperter.logInfo("Recieved signal with name : " + rply.getName());
-                        // read more messages 
-                    } else if(rply instanceof Error) {
-                        _interperter.logInfo("Recieved Error with name : " + rply.getName());
-                        // continue reading untill methodReturn
-                    } else if(rply instanceof MethodCall) {
-                        _interperter.logInfo("Recieved methodCall with name : " + rply.getName());
-                        // continue reading untill methodReturn
                     }
                 }
-                
                 //MatchRule setup
                 for(String rule : _rules){
                     v = Value.create(rule);
@@ -697,7 +645,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                         rply = readMessage(dis);
                         if(rply instanceof MethodReturn){
                             sig = rply.getSig();
-                            if(sig != null && sig != ""){
+                            if(sig != null && !sig.equals("")){
                                 try {
                                 parameters = rply.getParameters();
                                     valueObject = createValueFromParam(parameters, sig);
@@ -705,23 +653,10 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                                     _interperter.logSevere(de);
                                 }
                             }
-                            _interperter.logInfo("Recieved methodReturn" + "\n signature : " + sig);
                             run = false;
-                        } else if(rply instanceof DBusSignal) {
-                            // there might be a name aquired signal
-                            _interperter.logInfo("Recieved signal with name : " + rply.getName());
-                            // read more messages 
-                        } else if(rply instanceof Error) {
-                            _interperter.logInfo("Recieved Error with name : " + rply.getName());
-                            // continue reading untill methodReturn
-                        } else if(rply instanceof MethodCall) {
-                            _interperter.logInfo("Recieved methodCall with name : " + rply.getName());
-                            // continue reading untill methodReturn
-                        }
+                        } 
                     }
-                    
                 }
-                
             }
             ostream.flush();
         } else if(!_authenticated){
@@ -740,11 +675,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         }
     }
     private boolean dBusAuth(OutputStream ostream, InputStream istream, boolean server) throws IOException {
-            //when authenticating using the SASL method, the guid has to be filled if acting as dbus server,
-            //this should probably be parsed from the URI env variable. Otherwise the guid can be left blank. 
-
-            //TODO : fix bug, when using "normal" socket and not a local this will throw an exception because 
-            // USOutputStream class has not been loaded by the class loader.
             boolean authenticated;
             if (ostream instanceof USOutputStream) {
                 USOutputStream usos = (USOutputStream) ostream;
@@ -780,8 +710,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             } else {
                 authenticated = false;
                 throw new IOException("DBus currently only support unix sockets.");
-                //check if osstream is a instance of a normal tcp socket connection
-                //TODO: implement if TCP stream.
             }
         return authenticated;
     }
@@ -790,10 +718,7 @@ public class DBusProtocol extends ConcurrentCommProtocol {
         Map<String, ValueVector> map = new TreeMap(val.children());
         if (!map.isEmpty()) {
             for (Map.Entry<String, ValueVector> entry : map.entrySet()) {
-            //Collection<ValueVector> values = map.values();
-            //for (ValueVector vv : values) {
                 ValueVector vv = entry.getValue();
-                //array type if more then 1?
                 if (vv.size() > 1) {
                     ArrayList internalArray = new ArrayList();
                     for (int i = 0; i < vv.size(); i++) {
@@ -994,7 +919,6 @@ public class DBusProtocol extends ConcurrentCommProtocol {
             } else if (obj instanceof Byte) {
                 sig +="y";
             }
-
         }
         return sig;
     }    
