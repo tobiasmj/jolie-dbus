@@ -29,7 +29,7 @@ import jolie.net.protocols.CommProtocol;
 import jolie.runtime.AndJarDeps;
 import jolie.runtime.VariablePath;
 
-@AndJarDeps({"hexdump-0.2.jar","debug-enable-1.1.jar","libdbus-java-2.7.jar"})
+@AndJarDeps({"hexdump-0.2.jar","debug-disable-1.1.jar","libdbus-java-2.7.jar"})
 public class DBusProtocolFactory extends CommProtocolFactory
 {
 	public DBusProtocolFactory( CommCore commCore )
