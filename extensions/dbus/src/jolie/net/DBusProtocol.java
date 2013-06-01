@@ -375,6 +375,17 @@ public class DBusProtocol extends ConcurrentCommProtocol {
                                 rootElement.appendChild(interfaceElement);
                             }
                         }
+                        // add introspect information
+                        Element interfaceElement = doc.createElement("interface");
+                        interfaceElement.setAttribute("name", "org.freedesktop.DBus.Introspectable");
+                        Element methodElement = doc.createElement("method");
+                        methodElement.setAttribute("name", "Introspect");
+                        Element argumentOut = doc.createElement("arg");
+                        argumentOut.setAttribute("type", "s");
+                        argumentOut.setAttribute("direction", "out");
+                        methodElement.appendChild(argumentOut);
+                        interfaceElement.appendChild(methodElement);
+                        rootElement.appendChild(interfaceElement);
                         try{
                             TransformerFactory tf = TransformerFactory.newInstance();
                             Transformer transformer = tf.newTransformer();
